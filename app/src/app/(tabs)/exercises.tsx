@@ -3,7 +3,6 @@ import {
   FlatList,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -105,13 +104,8 @@ export default function ExercisesScreen() {
         </Pressable>
       </View>
 
-      {/* Filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipRow}
-        contentContainerStyle={{ paddingRight: spacing.lg }}
-      >
+      {/* Filter chips — üç filtre ekran genişliğine eşit bölünür */}
+      <View style={styles.filterRow}>
         <FilterChip
           label="Bölge"
           value={bodyPart ? tr(BODY_PART_TR, bodyPart) : 'Tümü'}
@@ -132,7 +126,7 @@ export default function ExercisesScreen() {
         />
         {activeCount > 0 && (
           <Pressable
-            style={styles.resetChip}
+            style={styles.resetBtn}
             onPress={() => {
               setBodyPart(null);
               setEquipment(null);
@@ -140,11 +134,10 @@ export default function ExercisesScreen() {
             }}
             accessibilityLabel="Filtreleri sıfırla"
           >
-            <RotateCcw color={colors.danger} size={14} />
-            <Text style={styles.resetChipText}>Sıfırla</Text>
+            <RotateCcw color={colors.danger} size={16} />
           </Pressable>
         )}
-      </ScrollView>
+      </View>
 
       <Text style={styles.countText}>{results.length} egzersiz</Text>
 
@@ -226,13 +219,15 @@ function FilterChip({
       accessibilityLabel={`${label}: ${value}`}
     >
       <Text style={[styles.filterChipLabel, active && { color: 'rgba(17,19,24,0.65)' }]}>{label}</Text>
-      <Text
-        style={[styles.filterChipValue, active && { color: colors.onPrimary }]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-      <ChevronDown color={active ? colors.onPrimary : colors.textDim} size={14} />
+      <View style={styles.filterChipValueRow}>
+        <Text
+          style={[styles.filterChipValue, active && { color: colors.onPrimary }]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <ChevronDown color={active ? colors.onPrimary : colors.textDim} size={14} />
+      </View>
     </Pressable>
   );
 }
@@ -294,37 +289,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipRow: { marginTop: spacing.md, height: 44 },
-  filterChip: {
+  filterRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    alignItems: 'stretch',
+  },
+  filterChip: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 2,
     paddingHorizontal: spacing.md,
-    height: 40,
-    borderRadius: radius.full,
+    paddingVertical: 10,
+    minHeight: 52,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    marginRight: spacing.sm,
-    alignSelf: 'center',
   },
   filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  filterChipLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.textDim },
-  filterChipValue: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.text, maxWidth: 120 },
-  resetChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: spacing.md,
-    height: 40,
-    alignSelf: 'center',
-    borderRadius: radius.full,
+  filterChipLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.textDim, textTransform: 'uppercase', letterSpacing: 0.4 },
+  filterChipValueRow: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'stretch' },
+  filterChipValue: { fontFamily: fonts.bodySb, fontSize: 14, color: colors.text, flex: 1 },
+  resetBtn: {
+    width: 52,
+    minHeight: 52,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,
-    marginRight: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  resetChipText: { fontFamily: fonts.bodySb, fontSize: 12, color: colors.danger },
   countText: {
     fontFamily: fonts.bodyMd,
     fontSize: 12,
