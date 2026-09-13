@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { File, Paths } from 'expo-file-system';
 import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -44,8 +46,12 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     const apks = (rel.assets ?? []).filter(
       (a: { name?: string; browser_download_url?: string }) => a.name?.endsWith('.apk')
     );
+    const wantsArm64 =
+      Platform.OS === 'android' &&
+      (Device.supportedCpuArchitectures ?? []).some((a) => a.includes('arm64'));
+    const arm64Apk = apks.find((a: { name?: string }) => a.name?.includes('arm64'));
     const apk =
-      apks.find((a: { name?: string }) => a.name?.includes('arm64')) ?? apks[0];
+      (wantsArm64 ? arm64Apk : apks.find((a: { name?: string }) => !a.name?.includes('arm64'))) ?? apks[0];
     return {
       status: 'available',
       version: latest,
@@ -70,21 +76,27 @@ export async function downloadAndInstall(
 ): Promise<InstallResult> {
   try {
     const dest = new File(Paths.cache, `sporapp-update-${version}.apk`);
-    if (dest.exists) dest.delete();
-    const task = File.createDownloadTask(url, dest, {
-      onProgress: ({ bytesWritten, totalBytes }) => {
-        if (totalBytes > 0) {
-          onProgress?.(Math.min(99, Math.round((bytesWritten / totalBytes) * 100)));
-        }
-      },
-    });
-    const file = await task.downloadAsync();
-    if (!file) return { status: 'error', error: 'İndirme tamamlanamadı.' };
+    const doneKey = `sporapp.apk.${version}`;
+    const alreadyDownloaded =
+      dest.exists && (await AsyncStorage.getItem(doneKey)) === '1';
+    if (!alreadyDownloaded) {
+      if (dest.exists) dest.delete();
+      const task = File.createDownloadTask(url, dest, {
+        onProgress: ({ bytesWritten, totalBytes }) => {
+          if (totalBytes > 0) {
+            onProgress?.(Math.min(99, Math.round((bytesWritten / totalBytes) * 100)));
+          }
+        },
+      });
+      const file = await task.downloadAsync();
+      if (!file) return { status: 'error', error: 'İndirme tamamlanamadı.' };
+      await AsyncStorage.setItem(doneKey, '1');
+    }
     onProgress?.(100);
     if (Platform.OS !== 'android') {
       return { status: 'error', error: 'Kurulum yalnızca Android cihazlarda destekleniyor.' };
     }
-    const contentUri = await getContentUriAsync(file.uri);
+    const contentUri = await getContentUriAsync(dest.uri);
     await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
       data: contentUri,
       type: 'application/vnd.android.package-archive',
