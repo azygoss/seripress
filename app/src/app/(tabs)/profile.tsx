@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, Download, Globe, Heart, Info, Minus, Plus, RotateCcw, Timer } from 'lucide-react-native';
 import { GOALS, LEVELS, type GoalId, type LevelId } from '../../data/labels';
-import { checkForUpdate, currentVersion } from '../../lib/updates';
+import { checkForUpdate, currentVersion, downloadAndInstall, type UpdateInfo } from '../../lib/updates';
 import { useAppStore } from '../../store/appStore';
 import { colors, fonts, radius, spacing } from '../../theme';
 import { Card, Chip, SectionHeader, Title } from '../../components/ui';
@@ -15,9 +15,32 @@ export default function ProfileScreen() {
   const store = useAppStore();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(store.name);
-  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'current' | 'error'>('idle');
+  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'current' | 'error' | 'downloading' | 'installing'>('idle');
+  const [downloadPercent, setDownloadPercent] = useState(0);
+
+  const startDownload = async (info: UpdateInfo) => {
+    if (!info.url) return;
+    setDownloadPercent(0);
+    setUpdateState('downloading');
+    const result = await downloadAndInstall(info.url, info.version ?? 'latest', setDownloadPercent);
+    if (result.status === 'prompted') {
+      setUpdateState('installing');
+      setTimeout(() => setUpdateState('idle'), 8000);
+      return;
+    }
+    setUpdateState('idle');
+    Alert.alert(
+      'İndirilemedi',
+      result.error ?? 'Güncelleme indirilemedi.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        ...(info.pageUrl ? [{ text: "GitHub'da Aç", onPress: () => Linking.openURL(info.pageUrl!) }] : []),
+      ]
+    );
+  };
 
   const runUpdateCheck = async () => {
+    if (updateState !== 'idle' && updateState !== 'error') return;
     setUpdateState('checking');
     const info = await checkForUpdate();
     if (info.status === 'available' && info.url) {
@@ -27,7 +50,7 @@ export default function ProfileScreen() {
         info.notes ? info.notes.slice(0, 400) : 'Yeni bir sürüm yayınlandı.',
         [
           { text: 'Daha Sonra', style: 'cancel' },
-          { text: 'İndir', onPress: () => Linking.openURL(info.url!) },
+          { text: 'İndir ve Kur', onPress: () => startDownload(info) },
         ]
       );
       return;
@@ -170,7 +193,11 @@ export default function ProfileScreen() {
 
       {/* Updates */}
       <SectionHeader title="Uygulama" />
-      <Pressable style={styles.updateCard} onPress={runUpdateCheck} disabled={updateState === 'checking'}>
+      <Pressable
+        style={styles.updateCard}
+        onPress={runUpdateCheck}
+        disabled={updateState === 'checking' || updateState === 'downloading' || updateState === 'installing'}
+      >
         <View style={styles.prefIcon}>
           <Download color={colors.accent} size={18} />
         </View>
@@ -180,10 +207,17 @@ export default function ProfileScreen() {
             {updateState === 'checking' && 'Kontrol ediliyor…'}
             {updateState === 'current' && 'Güncelsin — en son sürümü kullanıyorsun.'}
             {updateState === 'error' && 'Bağlantı hatası. İnternetini kontrol et.'}
+            {updateState === 'downloading' && `Güncelleme indiriliyor… %${downloadPercent}`}
+            {updateState === 'installing' && 'Kurulum ekranı açıldı — onaylaman gerekiyor.'}
             {updateState === 'idle' && `Kurulu sürüm: v${currentVersion()}`}
           </Text>
+          {updateState === 'downloading' && (
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.max(4, downloadPercent)}%` }]} />
+            </View>
+          )}
         </View>
-        {updateState === 'checking' ? (
+        {updateState === 'checking' || updateState === 'downloading' || updateState === 'installing' ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
           <ChevronRight color={colors.textDim} size={18} />
@@ -267,6 +301,14 @@ const styles = StyleSheet.create({
   langBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   langText: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.textMuted },
   langTextActive: { color: colors.onPrimary },
+  progressTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.cardAlt,
+    marginTop: spacing.sm,
+    overflow: 'hidden',
+  },
+  progressFill: { height: 5, borderRadius: 3, backgroundColor: colors.primary },
   updateCard: {
     flexDirection: 'row',
     alignItems: 'center',
