@@ -24,19 +24,22 @@ fs.writeFileSync(`${root}/app/package.json`, JSON.stringify(pkg, null, 2) + '\n'
 console.log(`version: ${version}, versionCode: ${oldCode} -> ${oldCode + 1}`);
 EOF
 
-# build release APK
+# build release APK — önce evrensel (4 ABI), sonra arm64-only (daha küçük, çoğu cihaz)
 cd "$ROOT/app/android"
 ./gradlew assembleRelease
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/SporApp-v$VERSION.apk"
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/SporApp-v$VERSION-arm64.apk"
 cd "$ROOT"
-
-APK="app/android/app/build/outputs/apk/release/app-release.apk"
-cp "$APK" "SporApp-v$VERSION.apk"
 
 # tag + release
 git add app/app.json app/package.json
 git commit -m "Sürüm v$VERSION" || true
 git tag -a "v$VERSION" -m "SporApp v$VERSION"
 git push origin HEAD --tags
-gh release create "v$VERSION" "SporApp-v$VERSION.apk" --title "SporApp v$VERSION" --notes "$NOTES"
+gh release create "v$VERSION" \
+  "SporApp-v$VERSION-arm64.apk" \
+  "SporApp-v$VERSION.apk" \
+  --title "SporApp v$VERSION" --notes "$NOTES"
 
 echo "Yayınlandı: https://github.com/azygoss/sporapp/releases/tag/v$VERSION"

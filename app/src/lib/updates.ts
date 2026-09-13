@@ -33,9 +33,11 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
     const rel = await res.json();
     const latest = String(rel.tag_name ?? '').replace(/^v/i, '');
     if (compareVersions(latest, currentVersion()) <= 0) return { status: 'current' };
-    const apk = (rel.assets ?? []).find((a: { name?: string; browser_download_url?: string }) =>
-      a.name?.endsWith('.apk')
+    const apks = (rel.assets ?? []).filter(
+      (a: { name?: string; browser_download_url?: string }) => a.name?.endsWith('.apk')
     );
+    const apk =
+      apks.find((a: { name?: string }) => a.name?.includes('arm64')) ?? apks[0];
     return {
       status: 'available',
       version: latest,
