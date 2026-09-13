@@ -25,6 +25,19 @@ const CATEGORY_ICONS: Record<string, string> = {
   neck: 'Boyun',
 };
 
+const CATEGORY_COVER: Record<string, string> = {
+  chest: '0025', // barbell bench press
+  back: '0652', // pull-up
+  shoulders: '0405', // dumbbell seated shoulder press
+  'upper arms': '0294', // dumbbell biceps curl
+  'lower arms': '1412', // wrist curl
+  'lower legs': '1373', // standing calf raise
+  waist: '0274', // crunch
+  'upper legs': '0043', // barbell full squat
+  cardio: '1160', // burpee
+  neck: '1403', // neck side stretch
+};
+
 const POPULAR_IDS = ['0662', '0025', '0043', '0032', '0652', '0294', '0630', '1160'];
 
 export default function HomeScreen() {
@@ -152,17 +165,22 @@ export default function HomeScreen() {
         {BODY_PARTS.map((part) => (
           <Pressable
             key={part}
-            style={styles.catItem}
+            style={({ pressed }) => [styles.catItem, pressed && { opacity: 0.85 }]}
             onPress={() => router.push({ pathname: '/(tabs)/exercises', params: { bodyPart: part } })}
           >
-            <View
-              style={[
-                styles.catDot,
-                { backgroundColor: BODY_PART_COLORS[part] ?? colors.primary },
-              ]}
-            />
-            <Text style={styles.catName}>{CATEGORY_ICONS[part] ?? tr(BODY_PART_TR, part)}</Text>
-            <Text style={styles.catCount}>{countByBodyPart(part)} hareket</Text>
+            <View style={styles.catThumbWrap}>
+              <ExerciseThumb id={CATEGORY_COVER[part] ?? '0001'} size={54} style={{ borderRadius: radius.md }} />
+              <View
+                style={[styles.catDotSm, { backgroundColor: BODY_PART_COLORS[part] ?? colors.primary }]}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.catName} numberOfLines={1}>
+                {CATEGORY_ICONS[part] ?? tr(BODY_PART_TR, part)}
+              </Text>
+              <Text style={styles.catCount}>{countByBodyPart(part)} hareket</Text>
+            </View>
+            <ChevronRight color={colors.textDim} size={16} />
           </Pressable>
         ))}
       </View>
@@ -302,9 +320,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  catDot: { width: 28, height: 28, borderRadius: 8, marginBottom: spacing.sm },
+  catThumbWrap: { position: 'relative' },
+  catDotSm: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
   catName: { fontFamily: fonts.bodySb, fontSize: 15, color: colors.text },
   catCount: { fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 2 },
   seeAll: { flexDirection: 'row', alignItems: 'center' },

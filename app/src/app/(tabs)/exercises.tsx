@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Filter, Heart, Search, Star, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Heart, RotateCcw, Search, Star, X } from 'lucide-react-native';
 import {
   BODY_PARTS,
   EQUIPMENTS,
@@ -23,7 +23,7 @@ import { BODY_PART_TR, EQUIPMENT_TR, TARGET_TR, tr } from '../../data/labels';
 import { useAppStore } from '../../store/appStore';
 import { colors, fonts, radius, spacing, BODY_PART_COLORS } from '../../theme';
 import { ExerciseThumb } from '../../components/ExerciseImage';
-import { Chip, EmptyState } from '../../components/ui';
+import { EmptyState } from '../../components/ui';
 
 type FilterKey = 'bodyPart' | 'equipment' | 'target';
 
@@ -112,31 +112,37 @@ export default function ExercisesScreen() {
         style={styles.chipRow}
         contentContainerStyle={{ paddingRight: spacing.lg }}
       >
-        <Chip
-          label={`Bölge: ${bodyPart ? tr(BODY_PART_TR, bodyPart) : 'Tümü'}`}
+        <FilterChip
+          label="Bölge"
+          value={bodyPart ? tr(BODY_PART_TR, bodyPart) : 'Tümü'}
           active={!!bodyPart}
           onPress={() => openModal('bodyPart')}
         />
-        <Chip
-          label={`Ekipman: ${equipment ? tr(EQUIPMENT_TR, equipment) : 'Tümü'}`}
+        <FilterChip
+          label="Ekipman"
+          value={equipment ? tr(EQUIPMENT_TR, equipment) : 'Tümü'}
           active={!!equipment}
           onPress={() => openModal('equipment')}
         />
-        <Chip
-          label={`Kas: ${target ? tr(TARGET_TR, target) : 'Tümü'}`}
+        <FilterChip
+          label="Kas"
+          value={target ? tr(TARGET_TR, target) : 'Tümü'}
           active={!!target}
           onPress={() => openModal('target')}
         />
         {activeCount > 0 && (
-          <Chip
-            label="Sıfırla"
+          <Pressable
+            style={styles.resetChip}
             onPress={() => {
               setBodyPart(null);
               setEquipment(null);
               setTarget(null);
             }}
-            color={colors.danger}
-          />
+            accessibilityLabel="Filtreleri sıfırla"
+          >
+            <RotateCcw color={colors.danger} size={14} />
+            <Text style={styles.resetChipText}>Sıfırla</Text>
+          </Pressable>
         )}
       </ScrollView>
 
@@ -200,6 +206,37 @@ export default function ExercisesScreen() {
   );
 }
 
+function FilterChip({
+  label,
+  value,
+  active,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.filterChip, active && styles.filterChipActive]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!active }}
+      accessibilityLabel={`${label}: ${value}`}
+    >
+      <Text style={[styles.filterChipLabel, active && { color: 'rgba(17,19,24,0.65)' }]}>{label}</Text>
+      <Text
+        style={[styles.filterChipValue, active && { color: colors.onPrimary }]}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <ChevronDown color={active ? colors.onPrimary : colors.textDim} size={14} />
+    </Pressable>
+  );
+}
+
 function ExerciseRow({ item, onPress }: { item: Exercise; onPress: () => void }) {
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFav = useAppStore((s) => s.favorites.includes(item.id));
@@ -258,6 +295,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipRow: { marginTop: spacing.md, flexGrow: 0 },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    height: 40,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    marginRight: spacing.sm,
+  },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterChipLabel: { fontFamily: fonts.body, fontSize: 12, color: colors.textDim },
+  filterChipValue: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.text, maxWidth: 120 },
+  resetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: spacing.md,
+    height: 40,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    marginRight: spacing.sm,
+  },
+  resetChipText: { fontFamily: fonts.bodySb, fontSize: 12, color: colors.danger },
   countText: {
     fontFamily: fonts.bodyMd,
     fontSize: 12,
