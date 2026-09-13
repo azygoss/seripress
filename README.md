@@ -1,4 +1,4 @@
-# Seri
+# SeriPress
 
 Tamamen çevrimdışı çalışan React Native (Expo) spor/fitness uygulaması.
 1.324 animasyonlu egzersiz, hazır antrenman programları, özel program oluşturucu,

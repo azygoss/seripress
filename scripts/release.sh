@@ -27,19 +27,19 @@ EOF
 # build release APK — önce evrensel (4 ABI), sonra arm64-only (daha küçük, çoğu cihaz)
 cd "$ROOT/app/android"
 ./gradlew assembleRelease
-cp app/build/outputs/apk/release/app-release.apk "$ROOT/Seri-v$VERSION.apk"
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/SeriPress-v$VERSION.apk"
 ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
-cp app/build/outputs/apk/release/app-release.apk "$ROOT/Seri-v$VERSION-arm64.apk"
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/SeriPress-v$VERSION-arm64.apk"
 cd "$ROOT"
 
 # tag + release
 git add app/app.json app/package.json
 git commit -m "Sürüm v$VERSION" || true
-git tag -a "v$VERSION" -m "Seri v$VERSION"
+git tag -a "v$VERSION" -m "SeriPress v$VERSION"
 git push origin HEAD --tags
 gh release create "v$VERSION" \
-  "Seri-v$VERSION-arm64.apk" \
-  "Seri-v$VERSION.apk" \
-  --title "Seri v$VERSION" --notes "$NOTES"
+  "SeriPress-v$VERSION-arm64.apk" \
+  "SeriPress-v$VERSION.apk" \
+  --title "SeriPress v$VERSION" --notes "$NOTES"
 
 echo "Yayınlandı: https://github.com/azygoss/sporapp/releases/tag/v$VERSION"

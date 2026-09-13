@@ -1,4 +1,4 @@
-# Seri — Agent Instructions
+# SeriPress — Agent Instructions
 
 Tamamen çevrimdışı çalışan Türkçe fitness uygulaması. React Native + Expo üretim
 build'i APK olarak dağıtılır; Play Store kullanılmaz, güncellemeler GitHub

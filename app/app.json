@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Seri",
+    "name": "SeriPress",
     "slug": "sporapp",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "sporapp",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.sporapp.fit",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
