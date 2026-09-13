@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Plus, Search, X } from 'lucide-react-native';
+import { ChevronRight, Heart, Plus, Search, X } from 'lucide-react-native';
 import { EXERCISES, getExercise, searchExercises, type Exercise } from '../data/exercises';
 import { BODY_PART_TR, EQUIPMENT_TR, tr } from '../data/labels';
 import type { RoutineExercise } from '../data/programs';
@@ -15,13 +15,18 @@ export default function PickerScreen() {
   const params = useLocalSearchParams<{ mode?: string; exerciseId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { customRoutines, saveCustomRoutine, setPendingPick, restSec } = useAppStore();
+  const { customRoutines, saveCustomRoutine, setPendingPick, restSec, favorites } = useAppStore();
   const [query, setQuery] = useState('');
+  const [favOnly, setFavOnly] = useState(false);
 
   const mode = params.mode ?? 'pick';
   const sourceExercise = params.exerciseId ? getExerciseSafe(params.exerciseId) : null;
 
-  const results = useMemo(() => searchExercises(query, {}), [query]);
+  const results = useMemo(() => {
+    let list = searchExercises(query, {});
+    if (favOnly) list = list.filter((e) => favorites.includes(e.id));
+    return list;
+  }, [query, favOnly, favorites]);
 
   const onPickExercise = (e: Exercise) => {
     if (mode === 'pick') {
@@ -96,18 +101,35 @@ export default function PickerScreen() {
         />
       ) : (
         <>
-          <View style={styles.searchBox}>
-            <Search color={colors.textDim} size={18} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Egzersiz ara..."
-              placeholderTextColor={colors.textDim}
-              value={query}
-              onChangeText={setQuery}
-              autoCapitalize="none"
-              autoFocus
-            />
+          <View style={styles.searchRow}>
+            <View style={styles.searchBox}>
+              <Search color={colors.textDim} size={18} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Egzersiz ara..."
+                placeholderTextColor={colors.textDim}
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="none"
+                autoFocus
+              />
+              {query.length > 0 && (
+                <Pressable onPress={() => setQuery('')} accessibilityLabel="Temizle">
+                  <X color={colors.textDim} size={16} />
+                </Pressable>
+              )}
+            </View>
+            <Pressable
+              style={[styles.favToggle, favOnly && { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]}
+              onPress={() => setFavOnly((v) => !v)}
+              accessibilityLabel="Sadece favoriler"
+            >
+              <Heart color={favOnly ? colors.danger : colors.textMuted} size={18} fill={favOnly ? colors.danger : 'none'} />
+            </Pressable>
           </View>
+          {favOnly && favorites.length === 0 && (
+            <Text style={styles.favHint}>Henüz favori egzersizin yok — egzersiz listesinde kalbe dokunarak ekleyebilirsin.</Text>
+          )}
           <FlatList
             data={results}
             keyExtractor={(e) => e.id}
@@ -167,7 +189,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginBottom: spacing.md },
   searchBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -177,8 +201,18 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
     height: 48,
-    marginBottom: spacing.md,
   },
+  favToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favHint: { fontFamily: fonts.body, fontSize: 12, color: colors.textDim, marginBottom: spacing.md },
   searchInput: { flex: 1, color: colors.text, fontFamily: fonts.body, fontSize: 15 },
   row: {
     flexDirection: 'row',
