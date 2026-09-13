@@ -103,7 +103,7 @@ arm64 APK → commit + tag + push → `gh release create` (iki APK da yüklenir)
 
 ## Uygulama içi güncelleme (`src/lib/updates.ts`)
 
-- `api.github.com/repos/azygoss/sporapp/releases/latest` sorgulanır, semver
+- `api.github.com/repos/azygoss/seripress/releases/latest` sorgulanır, semver
   karşılaştırılır.
 - APK seçimi `expo-device` `supportedCpuArchitectures` ile ABI-aware:
   arm64 cihazda `*-arm64.apk`, diğerinde evrensel.

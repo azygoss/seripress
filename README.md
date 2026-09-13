@@ -6,7 +6,7 @@ antrenman oynatıcı (set/dinlenme sayaçlı) ve geçmiş takibi içerir.
 
 ## İndirme
 
-En güncel APK: [Releases](https://github.com/azygoss/sporapp/releases/latest)
+En güncel APK: [Releases](https://github.com/azygoss/seripress/releases/latest)
 
 ## Geliştirme
 

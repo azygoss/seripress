@@ -6,7 +6,7 @@ import { getContentUriAsync } from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { Platform } from 'react-native';
 
-const REPO = 'azygoss/sporapp';
+const REPO = 'azygoss/seripress';
 const API = `https://api.github.com/repos/${REPO}/releases/latest`;
 
 const FLAG_GRANT_READ_URI_PERMISSION = 0x00000001;
