@@ -1,0 +1,21 @@
+node_modules/
+.expo/
+dist/
+build/
+
+# Native prebuild output (regenerate with `npx expo prebuild`)
+app/android/
+app/ios/
+
+# Raw dataset source (regenerate app data with `node scripts/prepare-data.js`)
+dataset/
+
+# Build artifacts
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# OS / editor
+.DS_Store
+*.log
