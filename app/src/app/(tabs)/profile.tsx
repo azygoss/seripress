@@ -235,7 +235,7 @@ export default function ProfileScreen() {
       <View style={styles.about}>
         <Info color={colors.textDim} size={14} />
         <Text style={styles.aboutText}>
-          SporApp v{currentVersion()} · 1.324 egzersiz verisi: exercises-dataset · Görseller © Gym visual
+          Seri v{currentVersion()} · 1.324 egzersiz verisi: exercises-dataset · Görseller © Gym visual
         </Text>
       </View>
     </ScrollView>

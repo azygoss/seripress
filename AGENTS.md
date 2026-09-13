@@ -1,4 +1,4 @@
-# SporApp — Agent Instructions
+# Seri — Agent Instructions
 
 Tamamen çevrimdışı çalışan Türkçe fitness uygulaması. React Native + Expo üretim
 build'i APK olarak dağıtılır; Play Store kullanılmaz, güncellemeler GitHub
@@ -95,8 +95,8 @@ Bu üretilmiş dosyaları elle düzenleme; scripti değiştir.
 Script şunları yapar: `version` bump + `versionCode++` → evrensel APK →
 arm64 APK → commit + tag + push → `gh release create` (iki APK da yüklenir).
 
-- Release adlandırması: `SporApp-v<semver>.apk` (evrensel) ve
-  `SporApp-v<semver>-arm64.apk`. İsimlerdeki `arm64` dizesi updater'ın seçim
+- Release adlandırması: `Seri-v<semver>.apk` (evrensel) ve
+  `Seri-v<semver>-arm64.apk`. İsimlerdeki `arm64` dizesi updater'ın seçim
   mantığı tarafından kullanılır — **asset adlarını değiştirme**.
 - `versionCode` her sürümde artmalı; Android aynı/düşük code'lu güncellemeyi
   reddeder.

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 VERSION="${1:?Kullanım: ./scripts/release.sh <semver> \"sürüm notları\"}"
-NOTES="${2:-SporApp v$VERSION}"
+NOTES="${2:-Seri v$VERSION}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}"
@@ -27,19 +27,19 @@ EOF
 # build release APK — önce evrensel (4 ABI), sonra arm64-only (daha küçük, çoğu cihaz)
 cd "$ROOT/app/android"
 ./gradlew assembleRelease
-cp app/build/outputs/apk/release/app-release.apk "$ROOT/SporApp-v$VERSION.apk"
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/Seri-v$VERSION.apk"
 ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
-cp app/build/outputs/apk/release/app-release.apk "$ROOT/SporApp-v$VERSION-arm64.apk"
+cp app/build/outputs/apk/release/app-release.apk "$ROOT/Seri-v$VERSION-arm64.apk"
 cd "$ROOT"
 
 # tag + release
 git add app/app.json app/package.json
 git commit -m "Sürüm v$VERSION" || true
-git tag -a "v$VERSION" -m "SporApp v$VERSION"
+git tag -a "v$VERSION" -m "Seri v$VERSION"
 git push origin HEAD --tags
 gh release create "v$VERSION" \
-  "SporApp-v$VERSION-arm64.apk" \
-  "SporApp-v$VERSION.apk" \
-  --title "SporApp v$VERSION" --notes "$NOTES"
+  "Seri-v$VERSION-arm64.apk" \
+  "Seri-v$VERSION.apk" \
+  --title "Seri v$VERSION" --notes "$NOTES"
 
 echo "Yayınlandı: https://github.com/azygoss/sporapp/releases/tag/v$VERSION"
