@@ -127,3 +127,15 @@ export const LEVELS = [
 
 export type GoalId = (typeof GOALS)[number]['id'];
 export type LevelId = (typeof LEVELS)[number]['id'];
+
+export const GENDERS = [
+  { id: 'female', label: 'Kadın' },
+  { id: 'male', label: 'Erkek' },
+  { id: 'other', label: 'Diğer' },
+] as const;
+
+export const LOCATIONS = [
+  { id: 'home', label: 'Evde' },
+  { id: 'gym', label: 'Salonda' },
+  { id: 'anywhere', label: 'Farketmez' },
+] as const;

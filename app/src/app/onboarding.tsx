@@ -1,20 +1,100 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Dumbbell, Flame, Heart, Zap } from 'lucide-react-native';
-import { GOALS, LEVELS, type GoalId, type LevelId } from '../data/labels';
-import { useAppStore } from '../store/appStore';
+import {
+  Calendar,
+  ChevronLeft,
+  Circle,
+  Dumbbell,
+  Flame,
+  Heart,
+  Home,
+  Mars,
+  Minus,
+  Plus,
+  Shuffle,
+  Target,
+  Venus,
+  Zap,
+} from 'lucide-react-native';
+import { GENDERS, GOALS, LEVELS, LOCATIONS, type GoalId, type LevelId } from '../data/labels';
+import { useAppStore, type Gender, type LocationPref } from '../store/appStore';
 import { colors, fonts, radius, spacing } from '../theme';
 import { Button, Title } from '../components/ui';
 
+const TOTAL_STEPS = 6;
+
 const GOAL_ICONS: Record<string, React.ReactNode> = {
-  muscle: <Dumbbell color={colors.primary} size={26} />,
-  fatloss: <Flame color={colors.danger} size={26} />,
-  strength: <Zap color={colors.warning} size={26} />,
-  general: <Heart color={colors.accent} size={26} />,
+  muscle: <Dumbbell color={colors.primary} size={24} />,
+  fatloss: <Flame color={colors.danger} size={24} />,
+  strength: <Zap color={colors.warning} size={24} />,
+  general: <Heart color={colors.accent} size={24} />,
 };
+
+const GENDER_ICONS: Record<string, React.ReactNode> = {
+  female: <Venus color={colors.primary} size={22} />,
+  male: <Mars color={colors.info} size={22} />,
+  other: <Circle color={colors.textMuted} size={22} />,
+};
+
+const LOCATION_ICONS: Record<string, React.ReactNode> = {
+  home: <Home color={colors.primary} size={22} />,
+  gym: <Dumbbell color={colors.accent} size={22} />,
+  anywhere: <Shuffle color={colors.info} size={22} />,
+};
+
+function StepperRow({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <View style={styles.stepperRow}>
+      <Text style={styles.stepperLabel}>{label}</Text>
+      <View style={styles.stepperCtrl}>
+        <Pressable
+          style={styles.stepBtn}
+          onPress={() => onChange(Math.max(min, value - 1))}
+          accessibilityLabel={`${label} azalt`}
+        >
+          <Minus color={colors.text} size={18} />
+        </Pressable>
+        <View style={styles.stepValueBox}>
+          <Text style={styles.stepValue}>{value}</Text>
+          <Text style={styles.stepUnit}>{unit}</Text>
+        </View>
+        <Pressable
+          style={styles.stepBtn}
+          onPress={() => onChange(Math.min(max, value + 1))}
+          accessibilityLabel={`${label} arttır`}
+        >
+          <Plus color={colors.text} size={18} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
@@ -23,124 +103,341 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [age, setAge] = useState(25);
+  const [heightCm, setHeightCm] = useState(175);
+  const [weightKg, setWeightKg] = useState(70);
+  const [targetWeightKg, setTargetWeightKg] = useState(70);
   const [goal, setGoal] = useState<GoalId>('general');
   const [level, setLevel] = useState<LevelId>('beginner');
+  const [daysPerWeek, setDaysPerWeek] = useState(3);
+  const [location, setLocation] = useState<LocationPref>('anywhere');
 
   const next = () => {
-    if (step < 2) setStep(step + 1);
+    if (step < TOTAL_STEPS - 1) setStep(step + 1);
     else {
-      completeOnboarding({ name: name.trim(), goal, level });
+      completeOnboarding({
+        name: name.trim(),
+        goal,
+        level,
+        gender,
+        age,
+        heightCm,
+        weightKg,
+        targetWeightKg,
+        daysPerWeek,
+        preferredLocation: location,
+      });
       router.replace('/(tabs)');
     }
   };
 
+  const back = () => setStep((s) => Math.max(0, s - 1));
+
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + spacing.xxxl, paddingBottom: insets.bottom + spacing.xl }]}>
-      <View style={styles.logoRow}>
-        <View style={styles.logo}>
-          <Dumbbell color={colors.onPrimary} size={26} />
-        </View>
-        <Text style={styles.logoText}>SPORAPP</Text>
-      </View>
-
-      {step === 0 && (
-        <View style={styles.stepWrap}>
-          <Title style={{ fontSize: 34 }}>Hoş geldin!</Title>
-          <Text style={styles.desc}>
-            1.324 egzersizlik animasyonlu kütüphane, hazır programlar ve antrenman takibi — hepsi
-            cebinde, tamamen çevrimdışı.
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View
+        style={[
+          styles.screen,
+          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xl },
+        ]}
+      >
+        {/* Progress header */}
+        <View style={styles.headerRow}>
+          {step > 0 ? (
+            <Pressable style={styles.backBtn} onPress={back} accessibilityLabel="Geri">
+              <ChevronLeft color={colors.text} size={22} />
+            </Pressable>
+          ) : (
+            <View style={styles.backBtn} />
+          )}
+          <View style={styles.progressTrack}>
+            <View
+              style={[styles.progressFill, { width: `${((step + 1) / TOTAL_STEPS) * 100}%` }]}
+            />
+          </View>
+          <Text style={styles.stepCount}>
+            {step + 1}/{TOTAL_STEPS}
           </Text>
-          <Text style={styles.fieldLabel}>Adın (isteğe bağlı)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Adını yaz"
-            placeholderTextColor={colors.textDim}
-            value={name}
-            onChangeText={setName}
-            maxLength={20}
-            returnKeyType="done"
-          />
         </View>
-      )}
 
-      {step === 1 && (
-        <View style={styles.stepWrap}>
-          <Title style={{ fontSize: 34 }}>Hedefin ne?</Title>
-          <Text style={styles.desc}>Sana en uygun programları önerebilmemiz için seç.</Text>
-          <View style={styles.optGrid}>
-            {GOALS.map((g) => (
-              <Pressable
-                key={g.id}
-                style={[styles.optCard, goal === g.id && styles.optCardActive]}
-                onPress={() => setGoal(g.id)}
-              >
-                {GOAL_ICONS[g.id]}
-                <Text style={[styles.optText, goal === g.id && { color: colors.primary }]}>{g.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {step === 0 && (
+            <View style={styles.stepWrap}>
+              <Image source={require('../../assets/splash-icon.png')} style={styles.logo} />
+              <Title style={styles.heroTitle}>
+                SeriPress'e{'\n'}hoş geldin
+              </Title>
+              <Text style={styles.desc}>
+                1.324 animasyonlu egzersiz, hazır programlar ve antrenman takibi — tamamen
+                çevrimdışı, cebinde.
+              </Text>
+              <Text style={styles.fieldLabel}>Adın (isteğe bağlı)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Adını yaz"
+                placeholderTextColor={colors.textDim}
+                value={name}
+                onChangeText={setName}
+                maxLength={20}
+                returnKeyType="done"
+              />
+            </View>
+          )}
 
-      {step === 2 && (
-        <View style={styles.stepWrap}>
-          <Title style={{ fontSize: 34 }}>Seviyen?</Title>
-          <Text style={styles.desc}>Antrenman yoğunluğu buna göre ayarlanacak.</Text>
-          <View style={{ gap: spacing.md }}>
-            {LEVELS.map((l) => (
-              <Pressable
-                key={l.id}
-                style={[styles.levelCard, level === l.id && styles.optCardActive]}
-                onPress={() => setLevel(l.id)}
-              >
-                <Text style={[styles.levelText, level === l.id && { color: colors.primary }]}>{l.label}</Text>
-                <View style={styles.levelDots}>
-                  {LEVELS.slice(0, LEVELS.findIndex((x) => x.id === l.id) + 1).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[styles.dot, { backgroundColor: level === l.id ? colors.primary : colors.border }]}
-                    />
-                  ))}
+          {step === 1 && (
+            <View style={styles.stepWrap}>
+              <Title style={styles.heroTitle}>Seni tanıyalım</Title>
+              <Text style={styles.desc}>
+                Yaş ve cinsiyet bilgisi egzersiz yoğunluğunu doğru ayarlamamıza yardım eder.
+              </Text>
+
+              <Text style={styles.fieldLabel}>Cinsiyet</Text>
+              <View style={styles.triRow}>
+                {GENDERS.map((g) => (
+                  <Pressable
+                    key={g.id}
+                    style={[styles.triCard, gender === g.id && styles.cardActive]}
+                    onPress={() => setGender(g.id)}
+                    accessibilityState={{ selected: gender === g.id }}
+                  >
+                    {GENDER_ICONS[g.id]}
+                    <Text style={[styles.triText, gender === g.id && { color: colors.primary }]}>
+                      {g.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <StepperRow label="Yaş" value={age} unit="yaş" min={13} max={90} onChange={setAge} />
+            </View>
+          )}
+
+          {step === 2 && (
+            <View style={styles.stepWrap}>
+              <Title style={styles.heroTitle}>Vücut ölçülerin</Title>
+              <Text style={styles.desc}>
+                İlerlemeni takip edebilmemiz için güncel değerlerini gir.
+              </Text>
+
+              <StepperRow
+                label="Boy"
+                value={heightCm}
+                unit="cm"
+                min={120}
+                max={220}
+                onChange={setHeightCm}
+              />
+              <StepperRow
+                label="Kilo"
+                value={weightKg}
+                unit="kg"
+                min={35}
+                max={200}
+                onChange={setWeightKg}
+              />
+              <StepperRow
+                label="Hedef kilo"
+                value={targetWeightKg}
+                unit="kg"
+                min={35}
+                max={200}
+                onChange={setTargetWeightKg}
+              />
+              <Text style={styles.hint}>Değerleri sonra profilinden güncelleyebilirsin.</Text>
+            </View>
+          )}
+
+          {step === 3 && (
+            <View style={styles.stepWrap}>
+              <Title style={styles.heroTitle}>Hedefin ne?</Title>
+              <Text style={styles.desc}>Sana en uygun programları önerebilmemiz için seç.</Text>
+              <View style={styles.optGrid}>
+                {GOALS.map((g) => (
+                  <Pressable
+                    key={g.id}
+                    style={[styles.optCard, goal === g.id && styles.cardActive]}
+                    onPress={() => setGoal(g.id)}
+                    accessibilityState={{ selected: goal === g.id }}
+                  >
+                    {GOAL_ICONS[g.id]}
+                    <Text style={[styles.optText, goal === g.id && { color: colors.primary }]}>
+                      {g.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {step === 4 && (
+            <View style={styles.stepWrap}>
+              <Title style={styles.heroTitle}>Seviyen?</Title>
+              <Text style={styles.desc}>Antrenman yoğunluğu buna göre ayarlanacak.</Text>
+              <View style={{ gap: spacing.md }}>
+                {LEVELS.map((l) => (
+                  <Pressable
+                    key={l.id}
+                    style={[styles.levelCard, level === l.id && styles.cardActive]}
+                    onPress={() => setLevel(l.id)}
+                    accessibilityState={{ selected: level === l.id }}
+                  >
+                    <Text style={[styles.levelText, level === l.id && { color: colors.primary }]}>
+                      {l.label}
+                    </Text>
+                    <View style={styles.levelDots}>
+                      {LEVELS.slice(0, LEVELS.findIndex((x) => x.id === l.id) + 1).map((_, i) => (
+                        <View
+                          key={i}
+                          style={[
+                            styles.dot,
+                            { backgroundColor: level === l.id ? colors.primary : colors.border },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {step === 5 && (
+            <View style={styles.stepWrap}>
+              <Title style={styles.heroTitle}>Planını kuralım</Title>
+              <Text style={styles.desc}>
+                Haftalık sıklık ve antrenman yerin önerileri kişiselleştirir.
+              </Text>
+
+              <StepperRow
+                label="Haftada kaç gün?"
+                value={daysPerWeek}
+                unit="gün"
+                min={1}
+                max={7}
+                onChange={setDaysPerWeek}
+              />
+
+              <Text style={styles.fieldLabel}>Nerede çalışacaksın?</Text>
+              <View style={styles.triRow}>
+                {LOCATIONS.map((l) => (
+                  <Pressable
+                    key={l.id}
+                    style={[styles.triCard, location === l.id && styles.cardActive]}
+                    onPress={() => setLocation(l.id)}
+                    accessibilityState={{ selected: location === l.id }}
+                  >
+                    {LOCATION_ICONS[l.id]}
+                    <Text style={[styles.triText, location === l.id && { color: colors.primary }]}>
+                      {l.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Summary */}
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryRow}>
+                  <Target color={colors.primary} size={16} />
+                  <Text style={styles.summaryText}>
+                    {GOALS.find((g) => g.id === goal)?.label} ·{' '}
+                    {LEVELS.find((l) => l.id === level)?.label}
+                  </Text>
                 </View>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
+                <View style={styles.summaryRow}>
+                  <Calendar color={colors.info} size={16} />
+                  <Text style={styles.summaryText}>
+                    Haftada {daysPerWeek} gün ·{' '}
+                    {LOCATIONS.find((l) => l.id === location)?.label.toLowerCase()}
+                  </Text>
+                </View>
+                <Text style={styles.summarySub}>
+                  {age} yaş · {heightCm} cm · {weightKg} kg → {targetWeightKg} kg
+                </Text>
+              </View>
+            </View>
+          )}
+        </ScrollView>
 
-      <View style={{ flex: 1 }} />
-
-      <View style={styles.dots}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={[styles.pageDot, i === step && styles.pageDotActive]} />
-        ))}
+        <Button
+          title={step === TOTAL_STEPS - 1 ? 'Başla' : 'Devam'}
+          onPress={next}
+        />
+        {step === 0 && (
+          <Pressable onPress={next} style={styles.skipBtn}>
+            <Text style={styles.skipText}>Atla</Text>
+          </Pressable>
+        )}
       </View>
-
-      <Button title={step === 2 ? 'Başla' : 'Devam'} onPress={next} />
-      {step === 0 && (
-        <Pressable onPress={next} style={styles.skipBtn}>
-          <Text style={styles.skipText}>Atla</Text>
-        </Pressable>
-      )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.xl },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xxxl },
-  logo: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: { fontFamily: fonts.display, fontSize: 26, color: colors.text, letterSpacing: 1.5 },
-  stepWrap: { marginTop: spacing.lg },
-  desc: { fontFamily: fonts.body, fontSize: 15, color: colors.textMuted, marginTop: spacing.sm, lineHeight: 22 },
-  fieldLabel: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.textMuted, marginTop: spacing.xxl, marginBottom: spacing.sm },
+  progressTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.cardAlt,
+    overflow: 'hidden',
+  },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.primary },
+  stepCount: {
+    fontFamily: fonts.bodySb,
+    fontSize: 13,
+    color: colors.textMuted,
+    minWidth: 34,
+    textAlign: 'right',
+  },
+  stepWrap: { marginTop: spacing.xxl },
+  logo: {
+    width: 84,
+    height: 84,
+    borderRadius: radius.xl,
+    marginBottom: spacing.xl,
+  },
+  heroTitle: { fontSize: 36, lineHeight: 40 },
+  desc: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+    lineHeight: 22,
+  },
+  fieldLabel: {
+    fontFamily: fonts.bodySb,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
   input: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -152,6 +449,53 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMd,
     fontSize: 16,
   },
+  triRow: { flexDirection: 'row', gap: spacing.md },
+  triCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 44,
+  },
+  triText: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.text },
+  cardActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+  },
+  stepperLabel: { fontFamily: fonts.bodySb, fontSize: 15, color: colors.text },
+  stepperCtrl: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  stepBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.cardAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepValueBox: { flexDirection: 'row', alignItems: 'baseline', gap: 4, minWidth: 72, justifyContent: 'center' },
+  stepValue: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
+  stepUnit: { fontFamily: fonts.bodyMd, fontSize: 13, color: colors.textMuted },
+  hint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textDim,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
   optGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.xl },
   optCard: {
     width: '47.5%',
@@ -161,8 +505,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.sm,
+    minHeight: 44,
   },
-  optCardActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   optText: { fontFamily: fonts.bodySb, fontSize: 15, color: colors.text },
   levelCard: {
     flexDirection: 'row',
@@ -173,13 +517,28 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     padding: spacing.lg,
+    minHeight: 44,
   },
   levelText: { fontFamily: fonts.bodySb, fontSize: 16, color: colors.text },
   levelDots: { flexDirection: 'row', gap: 6 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: spacing.lg },
-  pageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  pageDotActive: { backgroundColor: colors.primary, width: 22 },
-  skipBtn: { alignItems: 'center', padding: spacing.md },
+  summaryCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.xxl,
+    gap: spacing.sm,
+  },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  summaryText: { fontFamily: fonts.bodySb, fontSize: 14, color: colors.text },
+  summarySub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  skipBtn: { alignItems: 'center', padding: spacing.md, minHeight: 44, justifyContent: 'center' },
   skipText: { fontFamily: fonts.bodyMd, fontSize: 14, color: colors.textDim },
 });

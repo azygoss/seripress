@@ -23,7 +23,20 @@ export interface SessionLog {
   exercises: SessionExerciseLog[];
 }
 
-interface AppState {
+export type Gender = 'male' | 'female' | 'other';
+export type LocationPref = 'home' | 'gym' | 'anywhere';
+
+export interface ProfileStats {
+  gender: Gender | null;
+  age: number | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  targetWeightKg: number | null;
+  daysPerWeek: number | null;
+  preferredLocation: LocationPref | null;
+}
+
+interface AppState extends ProfileStats {
   hydrated: boolean;
   onboarded: boolean;
   name: string;
@@ -39,7 +52,10 @@ interface AppState {
 
   setHydrated: (v: boolean) => void;
   setPendingPick: (id: string | null) => void;
-  completeOnboarding: (p: { name: string; goal: GoalId; level: LevelId }) => void;
+  completeOnboarding: (
+    p: { name: string; goal: GoalId; level: LevelId } & ProfileStats
+  ) => void;
+  updateStats: (p: Partial<ProfileStats>) => void;
   setName: (name: string) => void;
   setGoal: (g: GoalId) => void;
   setLevel: (l: LevelId) => void;
@@ -64,6 +80,13 @@ export const useAppStore = create<AppState>()(
       goal: 'general',
       level: 'beginner',
       restSec: 60,
+      gender: null,
+      age: null,
+      heightCm: null,
+      weightKg: null,
+      targetWeightKg: null,
+      daysPerWeek: null,
+      preferredLocation: null,
       instructionLang: 'tr',
       favorites: [],
       customRoutines: [],
@@ -72,8 +95,9 @@ export const useAppStore = create<AppState>()(
 
       setHydrated: (v) => set({ hydrated: v }),
       setPendingPick: (id) => set({ pendingPick: id }),
-      completeOnboarding: ({ name, goal, level }) =>
-        set({ onboarded: true, name, goal, level }),
+      completeOnboarding: ({ name, goal, level, ...stats }) =>
+        set({ onboarded: true, name, goal, level, ...stats }),
+      updateStats: (p) => set(p),
       setName: (name) => set({ name }),
       setGoal: (goal) => set({ goal }),
       setLevel: (level) => set({ level }),
@@ -105,6 +129,13 @@ export const useAppStore = create<AppState>()(
           goal: 'general',
           level: 'beginner',
           restSec: 60,
+          gender: null,
+          age: null,
+          heightCm: null,
+          weightKg: null,
+          targetWeightKg: null,
+          daysPerWeek: null,
+          preferredLocation: null,
           favorites: [],
           customRoutines: [],
           sessions: [],
@@ -119,6 +150,13 @@ export const useAppStore = create<AppState>()(
         goal: s.goal,
         level: s.level,
         restSec: s.restSec,
+        gender: s.gender,
+        age: s.age,
+        heightCm: s.heightCm,
+        weightKg: s.weightKg,
+        targetWeightKg: s.targetWeightKg,
+        daysPerWeek: s.daysPerWeek,
+        preferredLocation: s.preferredLocation,
         instructionLang: s.instructionLang,
         favorites: s.favorites,
         customRoutines: s.customRoutines,

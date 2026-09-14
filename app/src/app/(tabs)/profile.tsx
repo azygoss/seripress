@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, Download, Globe, Heart, Info, Minus, Plus, RotateCcw, Timer } from 'lucide-react-native';
-import { GOALS, LEVELS, type GoalId, type LevelId } from '../../data/labels';
+import { Calendar, ChevronRight, Download, Globe, Heart, Info, Minus, Plus, RotateCcw, Timer } from 'lucide-react-native';
+import { GENDERS, GOALS, LEVELS, LOCATIONS } from '../../data/labels';
+import type { Gender, LocationPref } from '../../store/appStore';
 import { checkForUpdate, currentVersion, downloadAndInstall, type UpdateInfo } from '../../lib/updates';
 import { useAppStore } from '../../store/appStore';
 import { colors, fonts, radius, spacing } from '../../theme';
@@ -15,6 +16,21 @@ export default function ProfileScreen() {
   const store = useAppStore();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(store.name);
+  const [editingStat, setEditingStat] = useState<string | null>(null);
+  const [statDraft, setStatDraft] = useState('');
+
+  const STAT_FIELDS = [
+    { key: 'age', label: 'Yaş', unit: '', value: store.age, min: 13, max: 90 },
+    { key: 'heightCm', label: 'Boy', unit: 'cm', value: store.heightCm, min: 120, max: 220 },
+    { key: 'weightKg', label: 'Kilo', unit: 'kg', value: store.weightKg, min: 35, max: 200 },
+    { key: 'targetWeightKg', label: 'Hedef', unit: 'kg', value: store.targetWeightKg, min: 35, max: 200 },
+  ] as const;
+
+  const saveStat = (key: string, min: number, max: number) => {
+    const n = parseInt(statDraft, 10);
+    if (!isNaN(n)) store.updateStats({ [key]: Math.min(max, Math.max(min, n)) });
+    setEditingStat(null);
+  };
   const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'current' | 'error' | 'downloading' | 'installing'>('idle');
   const [downloadPercent, setDownloadPercent] = useState(0);
 
@@ -110,6 +126,107 @@ export default function ProfileScreen() {
                 <Text style={styles.nameHint}>Düzenlemek için dokun</Text>
               </Pressable>
             )}
+          </View>
+        </View>
+      </Card>
+
+      {/* Body stats */}
+      <SectionHeader title="Vücut Bilgileri" />
+      <Card>
+        <View style={styles.statGrid}>
+          {STAT_FIELDS.map((f) =>
+            editingStat === f.key ? (
+              <View key={f.key} style={styles.statCell}>
+                <TextInput
+                  style={styles.statInput}
+                  value={statDraft}
+                  onChangeText={setStatDraft}
+                  onBlur={() => saveStat(f.key, f.min, f.max)}
+                  onSubmitEditing={() => saveStat(f.key, f.min, f.max)}
+                  keyboardType="number-pad"
+                  autoFocus
+                  maxLength={3}
+                  returnKeyType="done"
+                />
+                <Text style={styles.statLabel}>{f.label}</Text>
+              </View>
+            ) : (
+              <Pressable
+                key={f.key}
+                style={styles.statCell}
+                onPress={() => {
+                  setStatDraft(f.value != null ? String(f.value) : '');
+                  setEditingStat(f.key);
+                }}
+                accessibilityLabel={`${f.label} düzenle`}
+              >
+                <Text style={styles.statValue}>
+                  {f.value ?? '—'}
+                  {f.unit ? <Text style={styles.statUnit}> {f.unit}</Text> : null}
+                </Text>
+                <Text style={styles.statLabel}>{f.label}</Text>
+              </Pressable>
+            )
+          )}
+        </View>
+        <Text style={styles.statHint}>Düzenlemek için değere dokun</Text>
+      </Card>
+
+      {/* Training prefs */}
+      <SectionHeader title="Antrenman Tercihleri" />
+      <Card>
+        <View style={styles.prefRow}>
+          <View style={styles.prefIcon}>
+            <Calendar color={colors.accent} size={18} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.prefTitle}>Haftalık sıklık</Text>
+            <Text style={styles.prefSub}>Hedeflediğin antrenman günü</Text>
+          </View>
+          <View style={styles.stepper}>
+            <Pressable
+              style={styles.stepBtn}
+              onPress={() => store.updateStats({ daysPerWeek: Math.max(1, (store.daysPerWeek ?? 3) - 1) })}
+              accessibilityLabel="Azalt"
+            >
+              <Minus color={colors.text} size={16} />
+            </Pressable>
+            <Text style={styles.stepValue}>{store.daysPerWeek ?? '—'}</Text>
+            <Pressable
+              style={styles.stepBtn}
+              onPress={() => store.updateStats({ daysPerWeek: Math.min(7, (store.daysPerWeek ?? 3) + 1) })}
+              accessibilityLabel="Arttır"
+            >
+              <Plus color={colors.text} size={16} />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={[styles.prefCol, styles.prefBorder]}>
+          <Text style={styles.prefTitle}>Cinsiyet</Text>
+          <View style={styles.chipWrap}>
+            {GENDERS.map((g) => (
+              <Chip
+                key={g.id}
+                label={g.label}
+                active={store.gender === g.id}
+                onPress={() => store.updateStats({ gender: g.id as Gender })}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.prefCol, styles.prefBorder]}>
+          <Text style={styles.prefTitle}>Antrenman yeri</Text>
+          <View style={styles.chipWrap}>
+            {LOCATIONS.map((l) => (
+              <Chip
+                key={l.id}
+                label={l.label}
+                active={store.preferredLocation === l.id}
+                onPress={() => store.updateStats({ preferredLocation: l.id as LocationPref })}
+              />
+            ))}
           </View>
         </View>
       </Card>
@@ -264,8 +381,37 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
     paddingVertical: 4,
   },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.sm },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.sm, marginTop: spacing.sm },
+  statGrid: { flexDirection: 'row' },
+  statCell: { flex: 1, alignItems: 'center', gap: 2, minHeight: 44, justifyContent: 'center' },
+  statValue: { fontFamily: fonts.display, fontSize: 26, color: colors.text },
+  statUnit: { fontFamily: fonts.bodyMd, fontSize: 12, color: colors.textMuted },
+  statLabel: {
+    fontFamily: fonts.bodyMd,
+    fontSize: 11,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statHint: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.textDim,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  statInput: {
+    fontFamily: fonts.bodySb,
+    fontSize: 20,
+    color: colors.text,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary,
+    minWidth: 44,
+    textAlign: 'center',
+    paddingVertical: 0,
+  },
   prefRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  prefCol: { paddingVertical: spacing.sm },
   prefBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, marginTop: spacing.sm, paddingTop: spacing.md },
   prefIcon: {
     width: 38,

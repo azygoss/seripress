@@ -43,12 +43,12 @@ const POPULAR_IDS = ['0662', '0025', '0043', '0032', '0652', '0294', '0630', '11
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { onboarded, name, goal, level, sessions, favorites } = useAppStore();
+  const { onboarded, name, goal, level, sessions, favorites, preferredLocation } = useAppStore();
 
   const recommended = useMemo(() => {
-    const id = recommendedRoutineId(goal, level);
+    const id = recommendedRoutineId(goal, level, preferredLocation);
     return PRESET_ROUTINES.find((r) => r.id === id) ?? PRESET_ROUTINES[0];
-  }, [goal, level]);
+  }, [goal, level, preferredLocation]);
 
   const week = useMemo(() => weekActivity(sessions), [sessions]);
   const popular = useMemo(

@@ -42,4 +42,4 @@ gh release create "v$VERSION" \
   "SeriPress-v$VERSION.apk" \
   --title "SeriPress v$VERSION" --notes "$NOTES"
 
-echo "Yayınlandı: https://github.com/azygoss/sporapp/releases/tag/v$VERSION"
+echo "Yayınlandı: https://github.com/azygoss/seripress/releases/tag/v$VERSION"

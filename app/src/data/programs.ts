@@ -364,7 +364,23 @@ export function routineMinutes(r: Routine): number {
   return Math.max(1, Math.round(sec / 60));
 }
 
-export function recommendedRoutineId(goal: GoalId | undefined, level: LevelId | undefined): string {
+export function recommendedRoutineId(
+  goal: GoalId | undefined,
+  level: LevelId | undefined,
+  location?: 'home' | 'gym' | 'anywhere' | null
+): string {
+  const locOk = (r: Routine) =>
+    !location || location === 'anywhere' || r.location === 'anywhere' || r.location === location;
+
+  // tam eşleşme: hedef + seviye + lokasyon
+  const exact = PRESET_ROUTINES.find(
+    (r) => (!goal || r.goals.includes(goal)) && (!level || r.level === level) && locOk(r)
+  );
+  if (exact) return exact.id;
+  // seviye esnet
+  const near = PRESET_ROUTINES.find((r) => (!goal || r.goals.includes(goal)) && locOk(r));
+  if (near) return near.id;
+
   if (goal === 'fatloss')
     return level === 'advanced' ? 'preset-hiit' : level === 'intermediate' ? 'preset-circuit' : 'preset-home-beginner';
   if (goal === 'strength')
