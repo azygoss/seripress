@@ -210,27 +210,31 @@ export default function GenerateScreen() {
             style={{ flex: 1 }}
           />
         ) : (
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button
-              title={t('gen.regenerate')}
-              variant="ghost"
-              icon={<RefreshCw color={colors.text} size={16} />}
+          <View style={styles.resultBar}>
+            <Pressable
+              style={({ pressed }) => [styles.iconAction, pressed && { opacity: 0.7 }]}
               onPress={generate}
-              style={{ minHeight: 52 }}
-            />
-            <Button
-              title={t('gen.save')}
-              variant="outline"
-              icon={<Save color={colors.text} size={16} />}
+              accessibilityRole="button"
+              accessibilityLabel={t('gen.regenerate')}
+            >
+              <RefreshCw color={colors.textMuted} size={18} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.iconAction, pressed && { opacity: 0.7 }]}
               onPress={save}
-              style={{ minHeight: 52 }}
-            />
-            <Button
-              title={t('gen.startNow')}
-              icon={<Play color={colors.onPrimary} size={16} fill={colors.onPrimary} />}
+              accessibilityRole="button"
+              accessibilityLabel={t('gen.save')}
+            >
+              <Save color={colors.textMuted} size={18} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.85 }]}
               onPress={start}
-              style={{ flex: 1 }}
-            />
+              accessibilityRole="button"
+            >
+              <Play color={colors.onPrimary} size={14} fill={colors.onPrimary} />
+              <Text style={styles.startBtnText}>{t('gen.startNow')}</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -336,13 +340,45 @@ const styles = StyleSheet.create({
   exIndex: { fontFamily: fonts.displayMd, fontSize: 17, color: colors.textDim, width: 20, textAlign: 'center' },
   exName: { fontFamily: fonts.bodySb, fontSize: 14, color: colors.text, flexShrink: 1 },
   exMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  resultBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iconAction: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  startBtnText: {
+    fontFamily: fonts.displayMd,
+    fontSize: 16,
+    color: colors.onPrimary,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
   ctaBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     backgroundColor: colors.bgElevated,
     borderTopWidth: 1,
     borderTopColor: colors.border,
