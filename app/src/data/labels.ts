@@ -113,29 +113,29 @@ export const MUSCLE_TR: Record<string, string> = {
 export const tr = (map: Record<string, string>, key: string): string => map[key] ?? key;
 
 export const GOALS = [
-  { id: 'muscle', label: 'Kas Kazanımı', icon: 'Dumbbell' },
-  { id: 'fatloss', label: 'Yağ Yakımı', icon: 'Flame' },
-  { id: 'strength', label: 'Güç', icon: 'Zap' },
-  { id: 'general', label: 'Genel Fitness', icon: 'Heart' },
+  { id: 'muscle', label: 'Kas Kazanımı', labelEn: 'Muscle Gain', icon: 'Dumbbell' },
+  { id: 'fatloss', label: 'Yağ Yakımı', labelEn: 'Fat Loss', icon: 'Flame' },
+  { id: 'strength', label: 'Güç', labelEn: 'Strength', icon: 'Zap' },
+  { id: 'general', label: 'Genel Fitness', labelEn: 'General Fitness', icon: 'Heart' },
 ] as const;
 
 export const LEVELS = [
-  { id: 'beginner', label: 'Başlangıç' },
-  { id: 'intermediate', label: 'Orta Seviye' },
-  { id: 'advanced', label: 'İleri Seviye' },
+  { id: 'beginner', label: 'Başlangıç', labelEn: 'Beginner' },
+  { id: 'intermediate', label: 'Orta Seviye', labelEn: 'Intermediate' },
+  { id: 'advanced', label: 'İleri Seviye', labelEn: 'Advanced' },
 ] as const;
 
 export type GoalId = (typeof GOALS)[number]['id'];
 export type LevelId = (typeof LEVELS)[number]['id'];
 
 export const GENDERS = [
-  { id: 'female', label: 'Kadın' },
-  { id: 'male', label: 'Erkek' },
-  { id: 'other', label: 'Diğer' },
+  { id: 'female', label: 'Kadın', labelEn: 'Female' },
+  { id: 'male', label: 'Erkek', labelEn: 'Male' },
+  { id: 'other', label: 'Diğer', labelEn: 'Other' },
 ] as const;
 
 export const LOCATIONS = [
-  { id: 'home', label: 'Evde' },
-  { id: 'gym', label: 'Salonda' },
-  { id: 'anywhere', label: 'Fark etmez' },
+  { id: 'home', label: 'Evde', labelEn: 'At Home' },
+  { id: 'gym', label: 'Salonda', labelEn: 'At the Gym' },
+  { id: 'anywhere', label: 'Fark etmez', labelEn: 'No Preference' },
 ] as const;

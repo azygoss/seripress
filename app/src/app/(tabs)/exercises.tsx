@@ -18,23 +18,26 @@ import {
   TARGETS,
   type Exercise,
 } from '../../data/exercises';
-import { BODY_PART_TR, EQUIPMENT_TR, TARGET_TR, tr } from '../../data/labels';
+import { BODY_PART_TR, EQUIPMENT_TR, TARGET_TR } from '../../data/labels';
 import { useAppStore } from '../../store/appStore';
+import { useI18n } from '../../i18n';
+import type { StrKey } from '../../i18n/strings';
 import { colors, fonts, radius, spacing, BODY_PART_COLORS } from '../../theme';
 import { ExerciseThumb } from '../../components/ExerciseImage';
 import { EmptyState } from '../../components/ui';
 
 type FilterKey = 'bodyPart' | 'equipment' | 'target';
 
-const FILTER_LABELS: Record<FilterKey, string> = {
-  bodyPart: 'Bölge',
-  equipment: 'Ekipman',
-  target: 'Kas',
+const FILTER_KEYS: Record<FilterKey, StrKey> = {
+  bodyPart: 'ex.filterBodyPart',
+  equipment: 'ex.filterEquipment',
+  target: 'ex.filterTarget',
 };
 
 export default function ExercisesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lb, exName } = useI18n();
   const params = useLocalSearchParams<{ bodyPart?: string }>();
   const favorites = useAppStore((s) => s.favorites);
 
@@ -61,11 +64,11 @@ export default function ExercisesScreen() {
   const openModal = (k: FilterKey) => setModal(k);
 
   const modalOptions = useMemo(() => {
-    if (modal === 'bodyPart') return BODY_PARTS.map((v) => ({ v, label: tr(BODY_PART_TR, v) }));
-    if (modal === 'equipment') return EQUIPMENTS.map((v) => ({ v, label: tr(EQUIPMENT_TR, v) }));
-    if (modal === 'target') return TARGETS.map((v) => ({ v, label: tr(TARGET_TR, v) }));
+    if (modal === 'bodyPart') return BODY_PARTS.map((v) => ({ v, label: lb(BODY_PART_TR, v) }));
+    if (modal === 'equipment') return EQUIPMENTS.map((v) => ({ v, label: lb(EQUIPMENT_TR, v) }));
+    if (modal === 'target') return TARGETS.map((v) => ({ v, label: lb(TARGET_TR, v) }));
     return [];
-  }, [modal]);
+  }, [modal, lb]);
 
   const currentValue = modal === 'bodyPart' ? bodyPart : modal === 'equipment' ? equipment : target;
   const setValue = (v: string | null) => {
@@ -82,7 +85,7 @@ export default function ExercisesScreen() {
           <Search color={colors.textDim} size={18} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Egzersiz ara..."
+            placeholder={t('ex.searchPlaceholder')}
             placeholderTextColor={colors.textDim}
             value={query}
             onChangeText={setQuery}
@@ -90,7 +93,7 @@ export default function ExercisesScreen() {
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} accessibilityLabel="Temizle">
+            <Pressable onPress={() => setQuery('')} accessibilityLabel={t('common.clear')}>
               <X color={colors.textDim} size={16} />
             </Pressable>
           )}
@@ -98,7 +101,7 @@ export default function ExercisesScreen() {
         <Pressable
           style={[styles.favToggle, favOnly && { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]}
           onPress={() => setFavOnly((v) => !v)}
-          accessibilityLabel="Sadece favoriler"
+          accessibilityLabel={t('common.onlyFavorites')}
         >
           <Heart color={favOnly ? colors.danger : colors.textMuted} size={18} fill={favOnly ? colors.danger : 'none'} />
         </Pressable>
@@ -107,20 +110,20 @@ export default function ExercisesScreen() {
       {/* Filter chips — üç filtre ekran genişliğine eşit bölünür */}
       <View style={styles.filterRow}>
         <FilterChip
-          label="Bölge"
-          value={bodyPart ? tr(BODY_PART_TR, bodyPart) : 'Tümü'}
+          label={t('ex.filterBodyPart')}
+          value={bodyPart ? lb(BODY_PART_TR, bodyPart) : t('common.all')}
           active={!!bodyPart}
           onPress={() => openModal('bodyPart')}
         />
         <FilterChip
-          label="Ekipman"
-          value={equipment ? tr(EQUIPMENT_TR, equipment) : 'Tümü'}
+          label={t('ex.filterEquipment')}
+          value={equipment ? lb(EQUIPMENT_TR, equipment) : t('common.all')}
           active={!!equipment}
           onPress={() => openModal('equipment')}
         />
         <FilterChip
-          label="Kas"
-          value={target ? tr(TARGET_TR, target) : 'Tümü'}
+          label={t('ex.filterTarget')}
+          value={target ? lb(TARGET_TR, target) : t('common.all')}
           active={!!target}
           onPress={() => openModal('target')}
         />
@@ -132,14 +135,14 @@ export default function ExercisesScreen() {
               setEquipment(null);
               setTarget(null);
             }}
-            accessibilityLabel="Filtreleri sıfırla"
+            accessibilityLabel={t('ex.resetFilters')}
           >
             <RotateCcw color={colors.danger} size={16} />
           </Pressable>
         )}
       </View>
 
-      <Text style={styles.countText}>{results.length} egzersiz</Text>
+      <Text style={styles.countText}>{t('common.exerciseCount', { n: results.length })}</Text>
 
       <FlatList
         data={results}
@@ -153,8 +156,8 @@ export default function ExercisesScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<Search color={colors.textDim} size={40} />}
-            title="Sonuç bulunamadı"
-            subtitle="Filtreleri değiştirmeyi veya farklı bir arama yapmayı deneyin."
+            title={t('common.noResults')}
+            subtitle={t('ex.emptySub')}
           />
         }
         renderItem={({ item }) => <ExerciseRow item={item} onPress={() => router.push(`/exercise/${item.id}`)} />}
@@ -165,13 +168,15 @@ export default function ExercisesScreen() {
         <Pressable style={styles.modalBackdrop} onPress={() => setModal(null)} />
         <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{modal ? FILTER_LABELS[modal] : ''} Seç</Text>
-            <Pressable onPress={() => setModal(null)} accessibilityLabel="Kapat">
+            <Text style={styles.modalTitle}>
+              {modal ? t('ex.selectLabel', { label: t(FILTER_KEYS[modal]) }) : ''}
+            </Text>
+            <Pressable onPress={() => setModal(null)} accessibilityLabel={t('common.close')}>
               <X color={colors.textMuted} size={22} />
             </Pressable>
           </View>
           <FlatList
-            data={[{ v: null, label: 'Tümü' }, ...modalOptions]}
+            data={[{ v: null, label: t('common.all') }, ...modalOptions]}
             keyExtractor={(o) => o.v ?? 'all'}
             renderItem={({ item }) => (
               <Pressable
@@ -233,6 +238,7 @@ function FilterChip({
 }
 
 function ExerciseRow({ item, onPress }: { item: Exercise; onPress: () => void }) {
+  const { t, lb, exName } = useI18n();
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFav = useAppStore((s) => s.favorites.includes(item.id));
   const dotColor = BODY_PART_COLORS[item.bodyPart] ?? colors.primary;
@@ -241,19 +247,19 @@ function ExerciseRow({ item, onPress }: { item: Exercise; onPress: () => void })
       <ExerciseThumb id={item.id} size={64} />
       <View style={styles.rowBody}>
         <Text style={styles.rowName} numberOfLines={1}>
-          {item.name}
+          {exName(item)}
         </Text>
         <View style={styles.rowMeta}>
           <View style={[styles.dot, { backgroundColor: dotColor }]} />
           <Text style={styles.rowMetaText} numberOfLines={1}>
-            {tr(BODY_PART_TR, item.bodyPart)} · {tr(EQUIPMENT_TR, item.equipment)}
+            {lb(BODY_PART_TR, item.bodyPart)} · {lb(EQUIPMENT_TR, item.equipment)}
           </Text>
         </View>
       </View>
       <Pressable
         onPress={() => toggleFavorite(item.id)}
         hitSlop={10}
-        accessibilityLabel="Favori"
+        accessibilityLabel={t('common.favorite')}
         style={{ padding: 4 }}
       >
         <Heart color={isFav ? colors.danger : colors.textDim} size={18} fill={isFav ? colors.danger : 'none'} />

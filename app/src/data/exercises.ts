@@ -5,6 +5,7 @@ import imgMap from './imgMap';
 export interface Exercise {
   id: string;
   name: string;
+  nameEn: string;
   bodyPart: string;
   equipment: string;
   target: string;
@@ -17,13 +18,15 @@ export interface Exercise {
 
 const CAP_AFTER = /(^|[-(/])([a-z])/g;
 
-export function formatExerciseName(name: string): string {
+export function formatExerciseName(name: string, lang: 'tr' | 'en' = 'tr'): string {
+  const male = lang === 'tr' ? 'Erkek' : 'Male';
+  const female = lang === 'tr' ? 'Kadın' : 'Female';
   return name
     .replace(/\s*-\s*(?=\()/g, ' ')
-    .replace(/\(\s*male\s*\)/gi, '(Erkek)')
-    .replace(/\(\s*female\s*\)/gi, '(Kadın)')
-    .replace(/\bmale\b/gi, 'Erkek')
-    .replace(/\bfemale\b/gi, 'Kadın')
+    .replace(/\(\s*male\s*\)/gi, `(${male})`)
+    .replace(/\(\s*female\s*\)/gi, `(${female})`)
+    .replace(/\bmale\b/gi, male)
+    .replace(/\bfemale\b/gi, female)
     .replace(/\bv\.\s*(\d+)/gi, 'V$1')
     .trim()
     .split(/\s+/)
@@ -35,7 +38,8 @@ export function formatExerciseName(name: string): string {
 
 export const EXERCISES: Exercise[] = (rawExercises as Exercise[]).map((e) => ({
   ...e,
-  name: formatExerciseName(e.name),
+  name: formatExerciseName(e.name, 'tr'),
+  nameEn: formatExerciseName(e.name, 'en'),
 }));
 
 const byId = new Map<string, Exercise>(EXERCISES.map((e) => [e.id, e]));
@@ -78,7 +82,7 @@ export function searchExercises(
     if (filters.target && e.target !== filters.target) return false;
     if (!q) return true;
     const hay = norm(
-      `${e.name} ${e.bodyPart} ${e.equipment} ${e.target} ${e.muscleGroup} ${
+      `${e.name} ${e.nameEn} ${e.bodyPart} ${e.equipment} ${e.target} ${e.muscleGroup} ${
         labelIndex?.get(e.id) ?? ''
       }`
     );

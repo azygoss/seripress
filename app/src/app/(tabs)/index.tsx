@@ -5,9 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Flame, Play, Star, Timer, Trophy } from 'lucide-react-native';
 import { BODY_PARTS, countByBodyPart, EXERCISES } from '../../data/exercises';
-import { BODY_PART_TR, tr, LEVELS, GOALS } from '../../data/labels';
-import { PRESET_ROUTINES, recommendedRoutineId, routineMinutes } from '../../data/programs';
+import { BODY_PART_TR, LEVELS, GOALS } from '../../data/labels';
+import { PRESET_ROUTINES, recommendedRoutineId, routineMinutes, routineName } from '../../data/programs';
 import { streakDays, totalMinutes, totalWorkouts, useAppStore, weekActivity } from '../../store/appStore';
+import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing, BODY_PART_COLORS } from '../../theme';
 import { ExerciseThumb } from '../../components/ExerciseImage';
 import { SectionHeader, StatTile } from '../../components/ui';
@@ -43,6 +44,7 @@ const POPULAR_IDS = ['0662', '0025', '0043', '0032', '0652', '0294', '0630', '11
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { lang, t, lb, lo, exName } = useI18n();
   const { onboarded, name, goal, level, sessions, favorites, preferredLocation } = useAppStore();
 
   const recommended = useMemo(() => {
@@ -50,12 +52,12 @@ export default function HomeScreen() {
     return PRESET_ROUTINES.find((r) => r.id === id) ?? PRESET_ROUTINES[0];
   }, [goal, level, preferredLocation]);
 
-  const week = useMemo(() => weekActivity(sessions), [sessions]);
+  const week = useMemo(() => weekActivity(sessions, lang), [sessions, lang]);
   const popular = useMemo(
     () => POPULAR_IDS.map((id) => EXERCISES.find((e) => e.id === id)).filter(Boolean),
     []
   );
-  const goalLabel = GOALS.find((g) => g.id === goal)?.label ?? 'Genel Fitness';
+  const goalLabel = lo(GOALS.find((g) => g.id === goal));
 
   if (!onboarded) return <Redirect href="/onboarding" />;
 
@@ -71,16 +73,16 @@ export default function HomeScreen() {
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.greeting}>
-            {greeting()}, {name || 'Sporcu'}
+            {greeting(lang)}, {name || t('home.athlete')}
           </Text>
           <Text style={styles.goalText}>
-            {goalLabel} · {LEVELS.find((l) => l.id === level)?.label}
+            {goalLabel} · {lo(LEVELS.find((l) => l.id === level))}
           </Text>
         </View>
         <Pressable
           style={styles.avatar}
           onPress={() => router.push('/profile')}
-          accessibilityLabel="Profil"
+          accessibilityLabel={t('tab.profile')}
         >
           <Text style={styles.avatarText}>{(name || 'S').slice(0, 1).toUpperCase()}</Text>
         </Pressable>
@@ -90,26 +92,26 @@ export default function HomeScreen() {
       <View style={styles.statsRow}>
         <StatTile
           value={streakDays(sessions)}
-          label="Seri"
+          label={t('home.streak')}
           color={colors.primary}
           icon={<Flame color={colors.primary} size={18} />}
         />
         <View style={{ width: spacing.md }} />
         <StatTile
           value={totalWorkouts(sessions)}
-          label="Antrenman"
+          label={t('home.workouts')}
           icon={<Trophy color={colors.accent} size={18} />}
         />
         <View style={{ width: spacing.md }} />
         <StatTile
           value={totalMinutes(sessions)}
-          label="Dakika"
+          label={t('home.minutes')}
           icon={<Timer color={colors.info} size={18} />}
         />
       </View>
 
       {/* Recommended workout */}
-      <SectionHeader title="Bugünkü Antrenman" />
+      <SectionHeader title={t('home.todaysWorkout')} />
       <Pressable onPress={() => router.push(`/routine/${recommended.id}`)}>
         <LinearGradient
           colors={[colors.primaryDark, colors.primary]}
@@ -119,15 +121,15 @@ export default function HomeScreen() {
         >
           <View style={{ flex: 1 }}>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>ÖNERİLEN</Text>
+              <Text style={styles.heroBadgeText}>{t('home.recommended')}</Text>
             </View>
-            <Text style={styles.heroTitle}>{recommended.name}</Text>
+            <Text style={styles.heroTitle}>{routineName(recommended, lang)}</Text>
             <Text style={styles.heroSub}>
-              {recommended.exercises.length} egzersiz · ~{routineMinutes(recommended)} dk
+              {t('common.exerciseCount', { n: recommended.exercises.length })} · ~{routineMinutes(recommended)} {t('common.minAbbr')}
             </Text>
             <View style={styles.heroCta}>
               <Play color={colors.onPrimary} size={16} fill={colors.onPrimary} />
-              <Text style={styles.heroCtaText}>Başla</Text>
+              <Text style={styles.heroCtaText}>{t('common.start')}</Text>
             </View>
           </View>
           <ExerciseThumb
@@ -139,7 +141,7 @@ export default function HomeScreen() {
       </Pressable>
 
       {/* Weekly activity */}
-      <SectionHeader title="Bu Hafta" />
+      <SectionHeader title={t('home.thisWeek')} />
       <View style={styles.weekCard}>
         {week.map((d) => (
           <View key={d.label} style={styles.weekCol}>
@@ -160,7 +162,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Categories */}
-      <SectionHeader title="Kas Grupları" />
+      <SectionHeader title={t('home.muscleGroups')} />
       <View style={styles.catGrid}>
         {BODY_PARTS.map((part) => (
           <Pressable
@@ -176,9 +178,9 @@ export default function HomeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.catName} numberOfLines={1}>
-                {CATEGORY_ICONS[part] ?? tr(BODY_PART_TR, part)}
+                {lang === 'en' ? lb(BODY_PART_TR, part) : CATEGORY_ICONS[part] ?? lb(BODY_PART_TR, part)}
               </Text>
-              <Text style={styles.catCount}>{countByBodyPart(part)} hareket</Text>
+              <Text style={styles.catCount}>{t('common.moveCount', { n: countByBodyPart(part) })}</Text>
             </View>
             <ChevronRight color={colors.textDim} size={16} />
           </Pressable>
@@ -187,10 +189,10 @@ export default function HomeScreen() {
 
       {/* Popular */}
       <SectionHeader
-        title="Popüler Egzersizler"
+        title={t('home.popular')}
         right={
           <Pressable onPress={() => router.push('/(tabs)/exercises')} style={styles.seeAll}>
-            <Text style={styles.seeAllText}>Tümü</Text>
+            <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
             <ChevronRight color={colors.primary} size={16} />
           </Pressable>
         }
@@ -206,9 +208,9 @@ export default function HomeScreen() {
               <ExerciseThumb id={e.id} size={120} style={{ borderRadius: 0 }} />
               <View style={{ padding: spacing.sm }}>
                 <Text style={styles.popName} numberOfLines={2}>
-                  {e.name}
+                  {exName(e)}
                 </Text>
-                <Text style={styles.popMeta}>{tr(BODY_PART_TR, e.bodyPart)}</Text>
+                <Text style={styles.popMeta}>{lb(BODY_PART_TR, e.bodyPart)}</Text>
               </View>
             </Pressable>
           ) : null
@@ -218,7 +220,7 @@ export default function HomeScreen() {
       {/* Favorites shortcut */}
       {favorites.length > 0 && (
         <>
-          <SectionHeader title="Favoriler" />
+          <SectionHeader title={t('home.favorites')} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md }}>
             {favorites.slice(0, 10).map((id) => {
               const e = EXERCISES.find((x) => x.id === id);
@@ -232,9 +234,9 @@ export default function HomeScreen() {
                   <ExerciseThumb id={id} size={56} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.favName} numberOfLines={1}>
-                      {e.name}
+                      {exName(e)}
                     </Text>
-                    <Text style={styles.popMeta}>{tr(BODY_PART_TR, e.bodyPart)}</Text>
+                    <Text style={styles.popMeta}>{lb(BODY_PART_TR, e.bodyPart)}</Text>
                   </View>
                   <Star color={colors.warning} size={14} fill={colors.warning} />
                 </Pressable>
@@ -247,8 +249,14 @@ export default function HomeScreen() {
   );
 }
 
-function greeting(): string {
+function greeting(lang: 'tr' | 'en'): string {
   const h = new Date().getHours();
+  if (lang === 'en') {
+    if (h < 6) return 'Good night';
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
   if (h < 6) return 'İyi geceler';
   if (h < 12) return 'Günaydın';
   if (h < 18) return 'İyi günler';

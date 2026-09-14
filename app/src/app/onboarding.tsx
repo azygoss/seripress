@@ -30,6 +30,7 @@ import {
 } from 'lucide-react-native';
 import { GENDERS, GOALS, LEVELS, LOCATIONS, type GoalId, type LevelId } from '../data/labels';
 import { useAppStore, type Gender, type LocationPref } from '../store/appStore';
+import { useI18n } from '../i18n';
 import { colors, fonts, radius, spacing } from '../theme';
 import { Button, Title } from '../components/ui';
 
@@ -69,6 +70,7 @@ function StepperRow({
   max: number;
   onChange: (v: number) => void;
 }) {
+  const { t } = useI18n();
   return (
     <View style={styles.stepperRow}>
       <Text style={styles.stepperLabel}>{label}</Text>
@@ -76,7 +78,7 @@ function StepperRow({
         <Pressable
           style={styles.stepBtn}
           onPress={() => onChange(Math.max(min, value - 1))}
-          accessibilityLabel={`${label} azalt`}
+          accessibilityLabel={`${label} ${t('common.decrease')}`}
         >
           <Minus color={colors.text} size={18} />
         </Pressable>
@@ -87,7 +89,7 @@ function StepperRow({
         <Pressable
           style={styles.stepBtn}
           onPress={() => onChange(Math.min(max, value + 1))}
-          accessibilityLabel={`${label} arttır`}
+          accessibilityLabel={`${label} ${t('common.increase')}`}
         >
           <Plus color={colors.text} size={18} />
         </Pressable>
@@ -99,6 +101,7 @@ function StepperRow({
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lo } = useI18n();
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
 
   const [step, setStep] = useState(0);
@@ -148,7 +151,7 @@ export default function OnboardingScreen() {
         {/* Progress header */}
         <View style={styles.headerRow}>
           {step > 0 ? (
-            <Pressable style={styles.backBtn} onPress={back} accessibilityLabel="Geri">
+            <Pressable style={styles.backBtn} onPress={back} accessibilityLabel={t('common.back')}>
               <ChevronLeft color={colors.text} size={22} />
             </Pressable>
           ) : (
@@ -173,17 +176,12 @@ export default function OnboardingScreen() {
           {step === 0 && (
             <View style={styles.stepWrap}>
               <Image source={require('../../assets/splash-icon.png')} style={styles.logo} />
-              <Title style={styles.heroTitle}>
-                SeriPress'e{'\n'}hoş geldin
-              </Title>
-              <Text style={styles.desc}>
-                1.324 animasyonlu egzersiz, hazır programlar ve antrenman takibi — tamamen
-                çevrimdışı, cebinde.
-              </Text>
-              <Text style={styles.fieldLabel}>Adın (isteğe bağlı)</Text>
+              <Title style={styles.heroTitle}>{t('ob.welcome')}</Title>
+              <Text style={styles.desc}>{t('ob.welcomeDesc')}</Text>
+              <Text style={styles.fieldLabel}>{t('ob.nameLabel')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Adını yaz"
+                placeholder={t('ob.namePlaceholder')}
                 placeholderTextColor={colors.textDim}
                 value={name}
                 onChangeText={setName}
@@ -195,12 +193,10 @@ export default function OnboardingScreen() {
 
           {step === 1 && (
             <View style={styles.stepWrap}>
-              <Title style={styles.heroTitle}>Seni tanıyalım</Title>
-              <Text style={styles.desc}>
-                Yaş ve cinsiyet bilgisi egzersiz yoğunluğunu doğru ayarlamamıza yardım eder.
-              </Text>
+              <Title style={styles.heroTitle}>{t('ob.knowYou')}</Title>
+              <Text style={styles.desc}>{t('ob.knowYouDesc')}</Text>
 
-              <Text style={styles.fieldLabel}>Cinsiyet</Text>
+              <Text style={styles.fieldLabel}>{t('ob.gender')}</Text>
               <View style={styles.triRow}>
                 {GENDERS.map((g) => (
                   <Pressable
@@ -211,25 +207,23 @@ export default function OnboardingScreen() {
                   >
                     {GENDER_ICONS[g.id]}
                     <Text style={[styles.triText, gender === g.id && { color: colors.primary }]}>
-                      {g.label}
+                      {lo(g)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <StepperRow label="Yaş" value={age} unit="yaş" min={13} max={90} onChange={setAge} />
+              <StepperRow label={t('ob.age')} value={age} unit={t('ob.ageUnit')} min={13} max={90} onChange={setAge} />
             </View>
           )}
 
           {step === 2 && (
             <View style={styles.stepWrap}>
-              <Title style={styles.heroTitle}>Vücut ölçülerin</Title>
-              <Text style={styles.desc}>
-                İlerlemeni takip edebilmemiz için güncel değerlerini gir.
-              </Text>
+              <Title style={styles.heroTitle}>{t('ob.bodyStats')}</Title>
+              <Text style={styles.desc}>{t('ob.bodyStatsDesc')}</Text>
 
               <StepperRow
-                label="Boy"
+                label={t('ob.height')}
                 value={heightCm}
                 unit="cm"
                 min={120}
@@ -237,7 +231,7 @@ export default function OnboardingScreen() {
                 onChange={setHeightCm}
               />
               <StepperRow
-                label="Kilo"
+                label={t('ob.weight')}
                 value={weightKg}
                 unit="kg"
                 min={35}
@@ -245,21 +239,21 @@ export default function OnboardingScreen() {
                 onChange={setWeightKg}
               />
               <StepperRow
-                label="Hedef kilo"
+                label={t('ob.targetWeight')}
                 value={targetWeightKg}
                 unit="kg"
                 min={35}
                 max={200}
                 onChange={setTargetWeightKg}
               />
-              <Text style={styles.hint}>Değerleri sonra profilinden güncelleyebilirsin.</Text>
+              <Text style={styles.hint}>{t('ob.statsHint')}</Text>
             </View>
           )}
 
           {step === 3 && (
             <View style={styles.stepWrap}>
-              <Title style={styles.heroTitle}>Hedefin ne?</Title>
-              <Text style={styles.desc}>Sana en uygun programları önerebilmemiz için seç.</Text>
+              <Title style={styles.heroTitle}>{t('ob.goalTitle')}</Title>
+              <Text style={styles.desc}>{t('ob.goalDesc')}</Text>
               <View style={styles.optGrid}>
                 {GOALS.map((g) => (
                   <Pressable
@@ -270,7 +264,7 @@ export default function OnboardingScreen() {
                   >
                     {GOAL_ICONS[g.id]}
                     <Text style={[styles.optText, goal === g.id && { color: colors.primary }]}>
-                      {g.label}
+                      {lo(g)}
                     </Text>
                   </Pressable>
                 ))}
@@ -280,8 +274,8 @@ export default function OnboardingScreen() {
 
           {step === 4 && (
             <View style={styles.stepWrap}>
-              <Title style={styles.heroTitle}>Seviyen?</Title>
-              <Text style={styles.desc}>Antrenman yoğunluğu buna göre ayarlanacak.</Text>
+              <Title style={styles.heroTitle}>{t('ob.levelTitle')}</Title>
+              <Text style={styles.desc}>{t('ob.levelDesc')}</Text>
               <View style={{ gap: spacing.md }}>
                 {LEVELS.map((l) => (
                   <Pressable
@@ -291,7 +285,7 @@ export default function OnboardingScreen() {
                     accessibilityState={{ selected: level === l.id }}
                   >
                     <Text style={[styles.levelText, level === l.id && { color: colors.primary }]}>
-                      {l.label}
+                      {lo(l)}
                     </Text>
                     <View style={styles.levelDots}>
                       {LEVELS.slice(0, LEVELS.findIndex((x) => x.id === l.id) + 1).map((_, i) => (
@@ -312,21 +306,19 @@ export default function OnboardingScreen() {
 
           {step === 5 && (
             <View style={styles.stepWrap}>
-              <Title style={styles.heroTitle}>Planını kuralım</Title>
-              <Text style={styles.desc}>
-                Haftalık sıklık ve antrenman yerin önerileri kişiselleştirir.
-              </Text>
+              <Title style={styles.heroTitle}>{t('ob.planTitle')}</Title>
+              <Text style={styles.desc}>{t('ob.planDesc')}</Text>
 
               <StepperRow
-                label="Haftada kaç gün?"
+                label={t('ob.daysPerWeek')}
                 value={daysPerWeek}
-                unit="gün"
+                unit={t('ob.dayUnit')}
                 min={1}
                 max={7}
                 onChange={setDaysPerWeek}
               />
 
-              <Text style={styles.fieldLabel}>Nerede çalışacaksın?</Text>
+              <Text style={styles.fieldLabel}>{t('ob.where')}</Text>
               <View style={styles.triRow}>
                 {LOCATIONS.map((l) => (
                   <Pressable
@@ -337,7 +329,7 @@ export default function OnboardingScreen() {
                   >
                     {LOCATION_ICONS[l.id]}
                     <Text style={[styles.triText, location === l.id && { color: colors.primary }]}>
-                      {l.label}
+                      {lo(l)}
                     </Text>
                   </Pressable>
                 ))}
@@ -348,19 +340,23 @@ export default function OnboardingScreen() {
                 <View style={styles.summaryRow}>
                   <Target color={colors.primary} size={16} />
                   <Text style={styles.summaryText}>
-                    {GOALS.find((g) => g.id === goal)?.label} ·{' '}
-                    {LEVELS.find((l) => l.id === level)?.label}
+                    {t('ob.summary1', {
+                      goal: lo(GOALS.find((g) => g.id === goal)),
+                      level: lo(LEVELS.find((l) => l.id === level)),
+                    })}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Calendar color={colors.info} size={16} />
                   <Text style={styles.summaryText}>
-                    Haftada {daysPerWeek} gün ·{' '}
-                    {LOCATIONS.find((l) => l.id === location)?.label.toLowerCase()}
+                    {t('ob.summary2', {
+                      days: daysPerWeek,
+                      loc: lo(LOCATIONS.find((l) => l.id === location)).toLowerCase(),
+                    })}
                   </Text>
                 </View>
                 <Text style={styles.summarySub}>
-                  {age} yaş · {heightCm} cm · {weightKg} kg → {targetWeightKg} kg
+                  {t('ob.summary3', { age, height: heightCm, weight: weightKg, target: targetWeightKg })}
                 </Text>
               </View>
             </View>
@@ -368,12 +364,12 @@ export default function OnboardingScreen() {
         </ScrollView>
 
         <Button
-          title={step === TOTAL_STEPS - 1 ? 'Başla' : 'Devam'}
+          title={step === TOTAL_STEPS - 1 ? t('common.start') : t('common.continue')}
           onPress={next}
         />
         {step === 0 && (
           <Pressable onPress={next} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Atla</Text>
+            <Text style={styles.skipText}>{t('common.skip')}</Text>
           </Pressable>
         )}
       </View>

@@ -7,12 +7,14 @@ import { GENDERS, GOALS, LEVELS, LOCATIONS } from '../../data/labels';
 import type { Gender, LocationPref } from '../../store/appStore';
 import { checkForUpdate, currentVersion, downloadAndInstall, type UpdateInfo } from '../../lib/updates';
 import { useAppStore } from '../../store/appStore';
+import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing } from '../../theme';
 import { Card, Chip, SectionHeader, Title } from '../../components/ui';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lo } = useI18n();
   const store = useAppStore();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(store.name);
@@ -20,10 +22,10 @@ export default function ProfileScreen() {
   const [statDraft, setStatDraft] = useState('');
 
   const STAT_FIELDS = [
-    { key: 'age', label: 'Yaş', unit: '', value: store.age, min: 13, max: 90 },
-    { key: 'heightCm', label: 'Boy', unit: 'cm', value: store.heightCm, min: 120, max: 220 },
-    { key: 'weightKg', label: 'Kilo', unit: 'kg', value: store.weightKg, min: 35, max: 200 },
-    { key: 'targetWeightKg', label: 'Hedef', unit: 'kg', value: store.targetWeightKg, min: 35, max: 200 },
+    { key: 'age', label: t('prof.age'), unit: '', value: store.age, min: 13, max: 90 },
+    { key: 'heightCm', label: t('prof.height'), unit: 'cm', value: store.heightCm, min: 120, max: 220 },
+    { key: 'weightKg', label: t('prof.weight'), unit: 'kg', value: store.weightKg, min: 35, max: 200 },
+    { key: 'targetWeightKg', label: t('prof.target'), unit: 'kg', value: store.targetWeightKg, min: 35, max: 200 },
   ] as const;
 
   const saveStat = (key: string, min: number, max: number) => {
@@ -46,11 +48,11 @@ export default function ProfileScreen() {
     }
     setUpdateState('idle');
     Alert.alert(
-      'İndirilemedi',
-      result.error ?? 'Güncelleme indirilemedi.',
+      t('prof.downloadFailed'),
+      result.error ?? t('prof.downloadFailedMsg'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
-        ...(info.pageUrl ? [{ text: "GitHub'da Aç", onPress: () => Linking.openURL(info.pageUrl!) }] : []),
+        { text: t('common.cancel'), style: 'cancel' },
+        ...(info.pageUrl ? [{ text: t('prof.openGithub'), onPress: () => Linking.openURL(info.pageUrl!) }] : []),
       ]
     );
   };
@@ -62,11 +64,11 @@ export default function ProfileScreen() {
     if (info.status === 'available' && info.url) {
       setUpdateState('idle');
       Alert.alert(
-        `Yeni sürüm: v${info.version}`,
-        info.notes ? info.notes.slice(0, 400) : 'Yeni bir sürüm yayınlandı.',
+        t('prof.newVersion', { n: info.version ?? '' }),
+        info.notes ? info.notes.slice(0, 400) : t('prof.newVersionMsg'),
         [
-          { text: 'Daha Sonra', style: 'cancel' },
-          { text: 'İndir ve Kur', onPress: () => startDownload(info) },
+          { text: t('prof.later'), style: 'cancel' },
+          { text: t('prof.downloadInstall'), onPress: () => startDownload(info) },
         ]
       );
       return;
@@ -76,10 +78,10 @@ export default function ProfileScreen() {
   };
 
   const confirmReset = () =>
-    Alert.alert('Tüm Verileri Sıfırla', 'Antrenman geçmişi, favoriler ve özel programlar silinecek. Emin misin?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('prof.resetTitle'), t('prof.resetMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sıfırla',
+        text: t('prof.reset'),
         style: 'destructive',
         onPress: () => {
           store.resetAll();
@@ -94,7 +96,7 @@ export default function ProfileScreen() {
       contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: 110 }}
       showsVerticalScrollIndicator={false}
     >
-      <Title>Profil</Title>
+      <Title>{t('prof.title')}</Title>
 
       {/* Identity */}
       <Card style={{ marginTop: spacing.lg }}>
@@ -122,8 +124,8 @@ export default function ProfileScreen() {
               />
             ) : (
               <Pressable onPress={() => { setNameDraft(store.name); setEditingName(true); }}>
-                <Text style={styles.name}>{store.name || 'Sporcu'}</Text>
-                <Text style={styles.nameHint}>Düzenlemek için dokun</Text>
+                <Text style={styles.name}>{store.name || t('prof.athlete')}</Text>
+                <Text style={styles.nameHint}>{t('prof.tapToEdit')}</Text>
               </Pressable>
             )}
           </View>
@@ -131,7 +133,7 @@ export default function ProfileScreen() {
       </Card>
 
       {/* Body stats */}
-      <SectionHeader title="Vücut Bilgileri" />
+      <SectionHeader title={t('prof.bodyStats')} />
       <Card>
         <View style={styles.statGrid}>
           {STAT_FIELDS.map((f) =>
@@ -158,7 +160,7 @@ export default function ProfileScreen() {
                   setStatDraft(f.value != null ? String(f.value) : '');
                   setEditingStat(f.key);
                 }}
-                accessibilityLabel={`${f.label} düzenle`}
+                accessibilityLabel={`${f.label} ${t('common.edit')}`}
               >
                 <Text style={styles.statValue}>
                   {f.value ?? '—'}
@@ -169,25 +171,25 @@ export default function ProfileScreen() {
             )
           )}
         </View>
-        <Text style={styles.statHint}>Düzenlemek için değere dokun</Text>
+        <Text style={styles.statHint}>{t('prof.tapValue')}</Text>
       </Card>
 
       {/* Training prefs */}
-      <SectionHeader title="Antrenman Tercihleri" />
+      <SectionHeader title={t('prof.workoutPrefs')} />
       <Card>
         <View style={styles.prefRow}>
           <View style={styles.prefIcon}>
             <Calendar color={colors.accent} size={18} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Haftalık sıklık</Text>
-            <Text style={styles.prefSub}>Hedeflediğin antrenman günü</Text>
+            <Text style={styles.prefTitle}>{t('prof.weeklyFreq')}</Text>
+            <Text style={styles.prefSub}>{t('prof.weeklyFreqSub')}</Text>
           </View>
           <View style={styles.stepper}>
             <Pressable
               style={styles.stepBtn}
               onPress={() => store.updateStats({ daysPerWeek: Math.max(1, (store.daysPerWeek ?? 3) - 1) })}
-              accessibilityLabel="Azalt"
+              accessibilityLabel={t('common.decrease')}
             >
               <Minus color={colors.text} size={16} />
             </Pressable>
@@ -195,7 +197,7 @@ export default function ProfileScreen() {
             <Pressable
               style={styles.stepBtn}
               onPress={() => store.updateStats({ daysPerWeek: Math.min(7, (store.daysPerWeek ?? 3) + 1) })}
-              accessibilityLabel="Arttır"
+              accessibilityLabel={t('common.increase')}
             >
               <Plus color={colors.text} size={16} />
             </Pressable>
@@ -203,12 +205,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.prefCol, styles.prefBorder]}>
-          <Text style={styles.prefTitle}>Cinsiyet</Text>
+          <Text style={styles.prefTitle}>{t('prof.gender')}</Text>
           <View style={styles.chipWrap}>
             {GENDERS.map((g) => (
               <Chip
                 key={g.id}
-                label={g.label}
+                label={lo(g)}
                 active={store.gender === g.id}
                 onPress={() => store.updateStats({ gender: g.id as Gender })}
               />
@@ -217,12 +219,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.prefCol, styles.prefBorder]}>
-          <Text style={styles.prefTitle}>Antrenman yeri</Text>
+          <Text style={styles.prefTitle}>{t('prof.location')}</Text>
           <View style={styles.chipWrap}>
             {LOCATIONS.map((l) => (
               <Chip
                 key={l.id}
-                label={l.label}
+                label={lo(l)}
                 active={store.preferredLocation === l.id}
                 onPress={() => store.updateStats({ preferredLocation: l.id as LocationPref })}
               />
@@ -231,41 +233,41 @@ export default function ProfileScreen() {
         </View>
 
         <View style={[styles.prefCol, styles.prefBorder]}>
-          <Text style={styles.prefTitle}>Hedef</Text>
+          <Text style={styles.prefTitle}>{t('prof.goal')}</Text>
           <View style={styles.chipWrap}>
             {GOALS.map((g) => (
-              <Chip key={g.id} label={g.label} active={store.goal === g.id} onPress={() => store.setGoal(g.id)} />
+              <Chip key={g.id} label={lo(g)} active={store.goal === g.id} onPress={() => store.setGoal(g.id)} />
             ))}
           </View>
         </View>
 
         <View style={[styles.prefCol, styles.prefBorder]}>
-          <Text style={styles.prefTitle}>Seviye</Text>
+          <Text style={styles.prefTitle}>{t('prof.level')}</Text>
           <View style={styles.chipWrap}>
             {LEVELS.map((l) => (
-              <Chip key={l.id} label={l.label} active={store.level === l.id} onPress={() => store.setLevel(l.id)} />
+              <Chip key={l.id} label={lo(l)} active={store.level === l.id} onPress={() => store.setLevel(l.id)} />
             ))}
           </View>
         </View>
       </Card>
 
       {/* Preferences */}
-      <SectionHeader title="Tercihler" />
+      <SectionHeader title={t('prof.prefs')} />
       <Card>
         <View style={styles.prefRow}>
           <View style={styles.prefIcon}>
             <Timer color={colors.primary} size={18} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Varsayılan dinlenme</Text>
-            <Text style={styles.prefSub}>Yeni programlarda set arası süre</Text>
+            <Text style={styles.prefTitle}>{t('prof.defaultRest')}</Text>
+            <Text style={styles.prefSub}>{t('prof.defaultRestSub')}</Text>
           </View>
           <View style={styles.stepper}>
-            <Pressable style={styles.stepBtn} onPress={() => store.setRestSec(Math.max(10, store.restSec - 10))} accessibilityLabel="Azalt">
+            <Pressable style={styles.stepBtn} onPress={() => store.setRestSec(Math.max(10, store.restSec - 10))} accessibilityLabel={t('common.decrease')}>
               <Minus color={colors.text} size={16} />
             </Pressable>
-            <Text style={styles.stepValue}>{store.restSec}sn</Text>
-            <Pressable style={styles.stepBtn} onPress={() => store.setRestSec(Math.min(300, store.restSec + 10))} accessibilityLabel="Arttır">
+            <Text style={styles.stepValue}>{store.restSec}{t('common.secAbbr')}</Text>
+            <Pressable style={styles.stepBtn} onPress={() => store.setRestSec(Math.min(300, store.restSec + 10))} accessibilityLabel={t('common.increase')}>
               <Plus color={colors.text} size={16} />
             </Pressable>
           </View>
@@ -276,8 +278,8 @@ export default function ProfileScreen() {
             <Globe color={colors.info} size={18} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Talimat dili</Text>
-            <Text style={styles.prefSub}>Egzersiz adım adım anlatımı</Text>
+            <Text style={styles.prefTitle}>{t('prof.language')}</Text>
+            <Text style={styles.prefSub}>{t('prof.languageSub')}</Text>
           </View>
           <View style={styles.langToggle}>
             <Pressable
@@ -303,15 +305,15 @@ export default function ProfileScreen() {
             <Heart color={colors.danger} size={18} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Favorilerim</Text>
-            <Text style={styles.prefSub}>{store.favorites.length} egzersiz</Text>
+            <Text style={styles.prefTitle}>{t('prof.myFavorites')}</Text>
+            <Text style={styles.prefSub}>{t('common.exerciseCount', { n: store.favorites.length })}</Text>
           </View>
           <ChevronRight color={colors.textDim} size={18} />
         </Pressable>
       </Card>
 
       {/* Updates */}
-      <SectionHeader title="Uygulama" />
+      <SectionHeader title={t('prof.app')} />
       <Pressable
         style={styles.updateCard}
         onPress={runUpdateCheck}
@@ -321,14 +323,14 @@ export default function ProfileScreen() {
           <Download color={colors.accent} size={18} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.prefTitle}>Güncellemeleri kontrol et</Text>
+          <Text style={styles.prefTitle}>{t('prof.checkUpdates')}</Text>
           <Text style={styles.prefSub}>
-            {updateState === 'checking' && 'Kontrol ediliyor…'}
-            {updateState === 'current' && 'Güncelsin — en son sürümü kullanıyorsun.'}
-            {updateState === 'error' && 'Bağlantı hatası. İnternetini kontrol et.'}
-            {updateState === 'downloading' && `Güncelleme indiriliyor… %${downloadPercent}`}
-            {updateState === 'installing' && 'Kurulum ekranı açıldı — onaylaman gerekiyor.'}
-            {updateState === 'idle' && `Kurulu sürüm: v${currentVersion()}`}
+            {updateState === 'checking' && t('prof.checking')}
+            {updateState === 'current' && t('prof.upToDate')}
+            {updateState === 'error' && t('prof.connError')}
+            {updateState === 'downloading' && t('prof.downloading', { n: downloadPercent })}
+            {updateState === 'installing' && t('prof.installerOpened')}
+            {updateState === 'idle' && t('prof.installedVer', { n: currentVersion() })}
           </Text>
           {updateState === 'downloading' && (
             <View style={styles.progressTrack}>
@@ -344,17 +346,17 @@ export default function ProfileScreen() {
       </Pressable>
 
       {/* Danger */}
-      <SectionHeader title="Veri" />
+      <SectionHeader title={t('prof.data')} />
       <Pressable style={styles.dangerCard} onPress={confirmReset}>
         <RotateCcw color={colors.danger} size={18} />
-        <Text style={styles.dangerText}>Tüm verileri sıfırla</Text>
+        <Text style={styles.dangerText}>{t('prof.resetAll')}</Text>
       </Pressable>
 
       {/* About */}
       <View style={styles.about}>
         <Info color={colors.textDim} size={14} />
         <Text style={styles.aboutText}>
-          SeriPress v{currentVersion()} · 1.324 egzersiz verisi: exercises-dataset · Görseller © Gym visual
+          {t('prof.about', { v: currentVersion() })}
         </Text>
       </View>
     </ScrollView>

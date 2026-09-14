@@ -202,9 +202,15 @@ export function streakDays(sessions: SessionLog[]): number {
   return streak;
 }
 
-export function weekActivity(sessions: SessionLog[]): { label: string; minutes: number; isToday: boolean }[] {
+export function weekActivity(
+  sessions: SessionLog[],
+  lang: 'tr' | 'en' = 'tr'
+): { label: string; minutes: number; isToday: boolean }[] {
   const out: { label: string; minutes: number; isToday: boolean }[] = [];
-  const dayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  const dayNames =
+    lang === 'en'
+      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      : ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);

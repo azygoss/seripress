@@ -4,8 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Dumbbell, Heart, Layers, Play, Plus, Target } from 'lucide-react-native';
 import { EXERCISES, getExercise } from '../../data/exercises';
-import { BODY_PART_TR, EQUIPMENT_TR, MUSCLE_TR, TARGET_TR, tr } from '../../data/labels';
+import { BODY_PART_TR, EQUIPMENT_TR, MUSCLE_TR, TARGET_TR } from '../../data/labels';
 import { useAppStore } from '../../store/appStore';
+import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing, BODY_PART_COLORS } from '../../theme';
 import { ExerciseGif, ExerciseThumb } from '../../components/ExerciseImage';
 import { Button, Card, Chip, EmptyState, SectionHeader } from '../../components/ui';
@@ -14,6 +15,7 @@ export default function ExerciseDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lb, exName } = useI18n();
   const { favorites, toggleFavorite, instructionLang } = useAppStore();
   const [showAllSteps, setShowAllSteps] = useState(false);
 
@@ -29,7 +31,7 @@ export default function ExerciseDetail() {
   if (!exercise) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <EmptyState title="Egzersiz bulunamadı" />
+        <EmptyState title={t('ex.notFound')} />
       </View>
     );
   }
@@ -50,26 +52,26 @@ export default function ExerciseDetail() {
           <Pressable
             style={[styles.backBtn, { top: insets.top + spacing.sm }]}
             onPress={() => router.back()}
-            accessibilityLabel="Geri"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft color={colors.text} size={22} />
           </Pressable>
           <Pressable
             style={[styles.favBtn, { top: insets.top + spacing.sm }]}
             onPress={() => toggleFavorite(exercise.id)}
-            accessibilityLabel="Favorilere ekle"
+            accessibilityLabel={t('ex.addToFavorites')}
           >
             <Heart color={isFav ? colors.danger : colors.text} size={22} fill={isFav ? colors.danger : 'none'} />
           </Pressable>
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.name}>{exercise.name}</Text>
+          <Text style={styles.name}>{exName(exercise)}</Text>
 
           <View style={styles.chips}>
-            <Chip label={tr(BODY_PART_TR, exercise.bodyPart)} active color={BODY_PART_COLORS[exercise.bodyPart] ?? colors.primary} />
-            <Chip label={tr(EQUIPMENT_TR, exercise.equipment)} />
-            <Chip label={tr(TARGET_TR, exercise.target)} />
+            <Chip label={lb(BODY_PART_TR, exercise.bodyPart)} active color={BODY_PART_COLORS[exercise.bodyPart] ?? colors.primary} />
+            <Chip label={lb(EQUIPMENT_TR, exercise.equipment)} />
+            <Chip label={lb(TARGET_TR, exercise.target)} />
           </View>
 
           {/* Muscles */}
@@ -80,8 +82,8 @@ export default function ExerciseDetail() {
                   <Target color={colors.primary} size={16} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.muscleLabel}>Birincil Kas</Text>
-                  <Text style={styles.muscleValue}>{tr(TARGET_TR, exercise.target)}</Text>
+                  <Text style={styles.muscleLabel}>{t('ex.primaryMuscle')}</Text>
+                  <Text style={styles.muscleValue}>{lb(TARGET_TR, exercise.target)}</Text>
                 </View>
               </View>
               <View style={styles.muscleItem}>
@@ -89,8 +91,8 @@ export default function ExerciseDetail() {
                   <Dumbbell color={colors.info} size={16} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.muscleLabel}>Kas Grubu</Text>
-                  <Text style={styles.muscleValue}>{tr(MUSCLE_TR, exercise.muscleGroup)}</Text>
+                  <Text style={styles.muscleLabel}>{t('ex.muscleGroup')}</Text>
+                  <Text style={styles.muscleValue}>{lb(MUSCLE_TR, exercise.muscleGroup)}</Text>
                 </View>
               </View>
             </View>
@@ -98,14 +100,14 @@ export default function ExerciseDetail() {
               <View style={styles.secondaryRow}>
                 <Layers color={colors.textDim} size={14} />
                 <Text style={styles.secondaryText}>
-                  İkincil: {exercise.secondaryMuscles.map((m) => tr(MUSCLE_TR, m)).join(', ')}
+                  {t('ex.secondary')} {exercise.secondaryMuscles.map((m) => lb(MUSCLE_TR, m)).join(', ')}
                 </Text>
               </View>
             )}
           </Card>
 
           {/* Steps */}
-          <SectionHeader title="Nasıl Yapılır" />
+          <SectionHeader title={t('ex.howTo')} />
           <Card>
             {visibleSteps.map((s, i) => (
               <View key={i} style={[styles.stepRow, i > 0 && styles.stepBorder]}>
@@ -118,7 +120,7 @@ export default function ExerciseDetail() {
             {steps.length > 6 && (
               <Pressable onPress={() => setShowAllSteps((v) => !v)} style={styles.moreBtn}>
                 <Text style={styles.moreText}>
-                  {showAllSteps ? 'Daha az göster' : `${steps.length - 6} adım daha göster`}
+                  {showAllSteps ? t('ex.showLess') : t('ex.showMore', { n: steps.length - 6 })}
                 </Text>
               </Pressable>
             )}
@@ -127,13 +129,13 @@ export default function ExerciseDetail() {
           {/* Similar */}
           {similar.length > 0 && (
             <>
-              <SectionHeader title="Benzer Egzersizler" />
+              <SectionHeader title={t('ex.similar')} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md }}>
                 {similar.map((e) => (
                   <Pressable key={e.id} style={styles.simCard} onPress={() => router.push(`/exercise/${e.id}`)}>
                     <ExerciseThumb id={e.id} size={104} style={{ borderRadius: 0 }} />
                     <View style={{ padding: spacing.sm }}>
-                      <Text style={styles.simName} numberOfLines={2}>{e.name}</Text>
+                      <Text style={styles.simName} numberOfLines={2}>{exName(e)}</Text>
                     </View>
                   </Pressable>
                 ))}
@@ -141,14 +143,14 @@ export default function ExerciseDetail() {
             </>
           )}
 
-          <Text style={styles.attribution}>Görsel: © Gym visual — gymvisual.com</Text>
+          <Text style={styles.attribution}>{t('ex.attribution')}</Text>
         </View>
       </ScrollView>
 
       {/* Bottom CTA */}
       <View style={[styles.ctaBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Button
-          title="Antrenmana Ekle"
+          title={t('ex.addToWorkout')}
           variant="outline"
           icon={<Plus color={colors.text} size={18} />}
           onPress={() => router.push({ pathname: '/picker', params: { mode: 'addToRoutine', exerciseId: exercise.id } })}
@@ -156,7 +158,7 @@ export default function ExerciseDetail() {
         />
         <View style={{ width: spacing.md }} />
         <Button
-          title="Hemen Başla"
+          title={t('ex.startNow')}
           icon={<Play color={colors.onPrimary} size={18} fill={colors.onPrimary} />}
           onPress={() => router.push(`/session/single-${exercise.id}`)}
           style={{ flex: 1 }}

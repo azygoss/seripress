@@ -6,9 +6,10 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
 import { Check, ChevronRight, Flag, Minus, Pause, Play, Plus, SkipForward, X } from 'lucide-react-native';
 import { getExercise } from '../../data/exercises';
-import { BODY_PART_TR, tr } from '../../data/labels';
-import { PRESET_ROUTINES, type Routine, type RoutineExercise } from '../../data/programs';
+import { BODY_PART_TR } from '../../data/labels';
+import { PRESET_ROUTINES, routineName, type Routine, type RoutineExercise } from '../../data/programs';
 import { uid, useAppStore, type SessionExerciseLog } from '../../store/appStore';
+import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing } from '../../theme';
 import { ExerciseGif } from '../../components/ExerciseImage';
 import { fmtDuration } from '../../lib/format';
@@ -20,6 +21,7 @@ export default function SessionScreen() {
   const { routineId } = useLocalSearchParams<{ routineId: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { lang, t, lb, exName } = useI18n();
   const { customRoutines, restSec: defaultRest, logSession } = useAppStore();
 
   const routine: Routine | undefined = useMemo(() => {
@@ -30,8 +32,8 @@ export default function SessionScreen() {
       const timed = e.target === 'cardiovascular system' || /plank|bridge|stretch/i.test(e.name);
       return {
         id: routineId,
-        name: e.name,
-        description: 'Tek egzersiz antrenmanı',
+        name: exName(e),
+        description: t('sess.singleDesc'),
         level: 'beginner',
         goals: ['general'],
         location: 'anywhere',
@@ -42,7 +44,8 @@ export default function SessionScreen() {
       PRESET_ROUTINES.find((r) => r.id === routineId) ??
       customRoutines.find((r) => r.id === routineId)
     );
-  }, [routineId, customRoutines, defaultRest]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routineId, customRoutines, defaultRest, lang]);
 
   const totalSets = useMemo(
     () => routine?.exercises.reduce((n, e) => n + e.sets, 0) ?? 0,
@@ -87,7 +90,7 @@ export default function SessionScreen() {
     const log = {
       id: uid(),
       routineId: routine.id,
-      routineName: routine.name,
+      routineName: routineName(routine, lang),
       startedAt: startedAt.current,
       endedAt,
       durationSec: Math.max(1, Math.round((endedAt - startedAt.current) / 1000)),
@@ -97,7 +100,7 @@ export default function SessionScreen() {
     logSession(log);
     setPhase('done');
     router.replace({ pathname: '/summary', params: { sessionId: log.id } });
-  }, [routine, logSession, router]);
+  }, [routine, logSession, router, lang]);
 
   const completeSet = useCallback(() => {
     if (!routine || !cur || !exercise) return;
@@ -111,7 +114,7 @@ export default function SessionScreen() {
     } else {
       logs.current.push({
         exerciseId: exercise.id,
-        name: exercise.name,
+        name: exName(exercise),
         setsCompleted: 1,
         repsCompleted: cur.reps,
         timed: !!cur.timed,
@@ -129,6 +132,7 @@ export default function SessionScreen() {
     setRestTotal(rest);
     setRestLeft(rest);
     setPhase('rest');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine, cur, exercise, setIndex, exIndex, finishWorkout]);
 
   const onRestEnd = useCallback(() => {
@@ -186,27 +190,27 @@ export default function SessionScreen() {
   };
 
   const quit = useCallback(() => {
-    Alert.alert('Antrenmanı Bitir', 'Şu ana kadar yapılan setler kaydedilsin mi?', [
-      { text: 'Devam Et', style: 'cancel' },
+    Alert.alert(t('sess.quitTitle'), t('sess.quitMsg'), [
+      { text: t('sess.keepGoing'), style: 'cancel' },
       {
-        text: 'Kaydetmeden Çık',
+        text: t('sess.exitNoSave'),
         style: 'destructive',
         onPress: () => router.back(),
       },
       {
-        text: 'Kaydet & Bitir',
+        text: t('sess.saveFinish'),
         onPress: () => {
           if (logs.current.length > 0) finishWorkout();
           else router.back();
         },
       },
     ]);
-  }, [router, finishWorkout]);
+  }, [router, finishWorkout, t]);
 
   if (!routine || !cur || !exercise) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <EmptyState title="Program bulunamadı" />
+        <EmptyState title={t('prog.notFound')} />
       </View>
     );
   }
@@ -220,14 +224,14 @@ export default function SessionScreen() {
     <View style={styles.screen}>
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={quit} style={styles.iconBtn} accessibilityLabel="Çık">
+        <Pressable onPress={quit} style={styles.iconBtn} accessibilityLabel={t('sess.exit')}>
           <X color={colors.text} size={22} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={styles.topTitle} numberOfLines={1}>{routine.name}</Text>
+          <Text style={styles.topTitle} numberOfLines={1}>{routineName(routine, lang)}</Text>
           <Text style={styles.topSub}>{fmtDuration(elapsed)}</Text>
         </View>
-        <Pressable onPress={() => setPaused((p) => !p)} style={styles.iconBtn} accessibilityLabel={paused ? 'Devam' : 'Duraklat'}>
+        <Pressable onPress={() => setPaused((p) => !p)} style={styles.iconBtn} accessibilityLabel={paused ? t('common.continue') : t('sess.pause')}>
           {paused ? <Play color={colors.text} size={20} /> : <Pause color={colors.text} size={20} />}
         </Pressable>
       </View>
@@ -240,43 +244,43 @@ export default function SessionScreen() {
       {phase === 'work' && (
         <View style={styles.workWrap}>
           <Text style={styles.exCount}>
-            EGZERSİZ {exIndex + 1}/{routine.exercises.length}
+            {t('sess.exerciseOf', { a: exIndex + 1, b: routine.exercises.length })}
           </Text>
           <View style={styles.gifBox}>
             <ExerciseGif id={exercise.id} />
           </View>
-          <Text style={styles.exName}>{exercise.name}</Text>
+          <Text style={styles.exName}>{exName(exercise)}</Text>
           <Text style={styles.exMeta}>
-            {tr(BODY_PART_TR, exercise.bodyPart)} · Set {setIndex + 1}/{cur.sets}
+            {lb(BODY_PART_TR, exercise.bodyPart)} · {t('sess.setOf', { a: setIndex + 1, b: cur.sets })}
           </Text>
 
           {cur.timed ? (
             <View style={styles.timerBig}>
               <Text style={styles.timerBigText}>{workLeft ?? cur.reps}</Text>
-              <Text style={styles.timerBigLabel}>saniye</Text>
+              <Text style={styles.timerBigLabel}>{t('sess.seconds')}</Text>
             </View>
           ) : (
             <View style={styles.repTarget}>
               <Text style={styles.repTargetNum}>{cur.reps}</Text>
-              <Text style={styles.repTargetLabel}>tekrar hedefi</Text>
+              <Text style={styles.repTargetLabel}>{t('sess.repTarget')}</Text>
             </View>
           )}
 
           <Button
-            title={cur.timed ? 'Seti Bitir' : 'Seti Tamamla'}
+            title={cur.timed ? t('sess.finishSet') : t('sess.completeSet')}
             icon={<Check color={colors.onPrimary} size={20} />}
             onPress={completeSet}
             style={{ marginTop: spacing.xl }}
           />
           <Pressable onPress={() => router.push(`/exercise/${exercise.id}`)} style={styles.howTo}>
-            <Text style={styles.howToText}>Nasıl yapılır?</Text>
+            <Text style={styles.howToText}>{t('sess.howTo')}</Text>
           </Pressable>
         </View>
       )}
 
       {phase === 'rest' && (
         <View style={styles.restWrap}>
-          <Text style={styles.restLabel}>DİNLENME</Text>
+          <Text style={styles.restLabel}>{t('sess.rest')}</Text>
           <Text style={styles.restTime}>{restLeft}</Text>
           <View style={styles.restBar}>
             <View
@@ -287,31 +291,31 @@ export default function SessionScreen() {
             />
           </View>
           <View style={styles.restAdj}>
-            <Pressable style={styles.adjBtn} onPress={() => adjustRest(-10)} accessibilityLabel="10 saniye azalt">
+            <Pressable style={styles.adjBtn} onPress={() => adjustRest(-10)} accessibilityLabel={t('sess.minus10')}>
               <Minus color={colors.text} size={20} />
             </Pressable>
             <Pressable style={styles.skipBtn} onPress={skipRest}>
               <SkipForward color={colors.onPrimary} size={20} />
-              <Text style={styles.skipText}>Atla</Text>
+              <Text style={styles.skipText}>{t('common.skip')}</Text>
             </Pressable>
-            <Pressable style={styles.adjBtn} onPress={() => adjustRest(10)} accessibilityLabel="10 saniye ekle">
+            <Pressable style={styles.adjBtn} onPress={() => adjustRest(10)} accessibilityLabel={t('sess.plus10')}>
               <Plus color={colors.text} size={20} />
             </Pressable>
           </View>
           {nextExercise ? (
             <View style={styles.nextBox}>
-              <Text style={styles.nextLabel}>SIRADAKİ</Text>
-              <Text style={styles.nextName}>{nextExercise.name}</Text>
+              <Text style={styles.nextLabel}>{t('sess.upNext')}</Text>
+              <Text style={styles.nextName}>{exName(nextExercise)}</Text>
               <Text style={styles.nextMeta}>
-                {nextEx!.sets} × {nextEx!.timed ? `${nextEx!.reps} sn` : `${nextEx!.reps} tekrar`}
+                {t('prog.setsXreps', { sets: nextEx!.sets, reps: `${nextEx!.reps} ${nextEx!.timed ? t('common.sec') : t('common.reps')}` })}
               </Text>
             </View>
           ) : (
             <View style={styles.nextBox}>
-              <Text style={styles.nextLabel}>SONRAKİ SET</Text>
-              <Text style={styles.nextName}>{exercise.name}</Text>
+              <Text style={styles.nextLabel}>{t('sess.nextSet')}</Text>
+              <Text style={styles.nextName}>{exName(exercise)}</Text>
               <Text style={styles.nextMeta}>
-                Set {setIndex + 2}/{cur.sets} · {cur.timed ? `${cur.reps} sn` : `${cur.reps} tekrar`}
+                {t('sess.setOf', { a: setIndex + 2, b: cur.sets })} · {cur.reps} {cur.timed ? t('common.sec') : t('common.reps')}
               </Text>
             </View>
           )}
@@ -321,10 +325,10 @@ export default function SessionScreen() {
       {paused && (
         <View style={styles.pausedOverlay}>
           <Pause color={colors.primary} size={44} />
-          <Text style={styles.pausedText}>Duraklatıldı</Text>
-          <Button title="Devam Et" onPress={() => setPaused(false)} style={{ marginTop: spacing.lg }} />
+          <Text style={styles.pausedText}>{t('sess.paused')}</Text>
+          <Button title={t('sess.resume')} onPress={() => setPaused(false)} style={{ marginTop: spacing.lg }} />
           <Button
-            title="Antrenmanı Bitir"
+            title={t('sess.endWorkout')}
             variant="ghost"
             icon={<Flag color={colors.text} size={16} />}
             onPress={quit}

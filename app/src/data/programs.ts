@@ -13,7 +13,9 @@ export interface RoutineExercise {
 export interface Routine {
   id: string;
   name: string;
+  nameEn?: string;
   description: string;
+  descriptionEn?: string;
   level: LevelId;
   goals: GoalId[];
   location: 'home' | 'gym' | 'anywhere';
@@ -34,7 +36,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-home-beginner',
     name: 'Evde Başlangıç',
+    nameEn: 'Home Starter',
     description: 'Ekipmansız, tüm vücut. Spora yeni başlayanlar için ideal giriş programı.',
+    descriptionEn: 'Bodyweight full-body. The ideal entry program for beginners.',
     level: 'beginner',
     goals: ['general', 'fatloss'],
     location: 'home',
@@ -52,7 +56,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-full-body',
     name: 'Full Body Güç',
+    nameEn: 'Full Body Strength',
     description: 'Bileşik hareketlerle tüm vücudu çalıştıran klasik güç antrenmanı.',
+    descriptionEn: 'Classic strength training hitting the whole body with compound lifts.',
     level: 'intermediate',
     goals: ['strength', 'muscle'],
     location: 'gym',
@@ -69,7 +75,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-push',
     name: 'Push Günü (İtiş)',
+    nameEn: 'Push Day',
     description: 'Göğüs, omuz ve triceps odaklı itiş antrenmanı.',
+    descriptionEn: 'Push workout focused on chest, shoulders and triceps.',
     level: 'intermediate',
     goals: ['muscle', 'strength'],
     location: 'gym',
@@ -86,7 +94,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-pull',
     name: 'Pull Günü (Çekiş)',
+    nameEn: 'Pull Day',
     description: 'Sırt ve biceps odaklı çekiş antrenmanı.',
+    descriptionEn: 'Pull workout focused on back and biceps.',
     level: 'intermediate',
     goals: ['muscle', 'strength'],
     location: 'gym',
@@ -103,7 +113,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-legs',
     name: 'Legs Günü (Bacak)',
+    nameEn: 'Leg Day',
     description: 'Ön bacak, arka bacak, kalça ve baldır için komple bacak antrenmanı.',
+    descriptionEn: 'Complete leg training for quads, hamstrings, glutes and calves.',
     level: 'intermediate',
     goals: ['muscle', 'strength'],
     location: 'gym',
@@ -120,7 +132,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-core',
     name: 'Karın & Core',
+    nameEn: 'Abs & Core',
     description: 'Karın kasları ve merkez bölgesi için yoğun core antrenmanı.',
+    descriptionEn: 'Intense core workout for abs and midsection.',
     level: 'beginner',
     goals: ['muscle', 'fatloss', 'general'],
     location: 'anywhere',
@@ -138,7 +152,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-hiit',
     name: 'HIIT Kardiyo',
+    nameEn: 'HIIT Cardio',
     description: 'Ekipmansız yüksek tempolu yağ yakım antrenmanı.',
+    descriptionEn: 'High-tempo bodyweight fat-burn workout.',
     level: 'advanced',
     goals: ['fatloss'],
     location: 'anywhere',
@@ -155,7 +171,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-morning',
     name: 'Sabah Aktivasyonu',
+    nameEn: 'Morning Activation',
     description: 'Güne zinde başlamak için hafif mobilite ve esneme rutini.',
+    descriptionEn: 'Light mobility and stretching routine to start the day fresh.',
     level: 'beginner',
     goals: ['general'],
     location: 'anywhere',
@@ -173,7 +191,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-arms',
     name: 'Kol Günü (Biceps + Triceps)',
+    nameEn: 'Arm Day (Biceps + Triceps)',
     description: 'Kol hacmi için biceps ve triceps odaklı izolasyon antrenmanı.',
+    descriptionEn: 'Isolation work focused on biceps and triceps for arm size.',
     level: 'intermediate',
     goals: ['muscle'],
     location: 'gym',
@@ -190,7 +210,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-shoulders',
     name: 'Omuz & Trapez',
+    nameEn: 'Shoulders & Traps',
     description: 'Geniş ve güçlü omuzlar için deltoid ve trapez odaklı program.',
+    descriptionEn: 'Deltoid and trap focused program for broad, strong shoulders.',
     level: 'intermediate',
     goals: ['muscle', 'strength'],
     location: 'gym',
@@ -207,7 +229,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-chest',
     name: 'Göğüs Günü',
+    nameEn: 'Chest Day',
     description: 'Göğüs kaslarını her açıdan çalıştıran pres ve fly kombinasyonu.',
+    descriptionEn: 'Press and fly combination hitting the chest from every angle.',
     level: 'intermediate',
     goals: ['muscle'],
     location: 'gym',
@@ -224,7 +248,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-glutes-home',
     name: 'Kalça & Bacak (Ev)',
+    nameEn: 'Glutes & Legs (Home)',
     description: 'Ekipmansız kalça ve bacak şekillendirme programı.',
+    descriptionEn: 'Bodyweight glute and leg sculpting program.',
     level: 'beginner',
     goals: ['muscle', 'general'],
     location: 'home',
@@ -242,7 +268,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-kettlebell',
     name: 'Kettlebell Güç',
+    nameEn: 'Kettlebell Power',
     description: 'Tek kettlebell ile patlayıcı güç ve kondisyon geliştiren program.',
+    descriptionEn: 'Explosive power and conditioning with a single kettlebell.',
     level: 'intermediate',
     goals: ['strength', 'fatloss'],
     location: 'anywhere',
@@ -259,7 +287,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-band',
     name: 'Direnç Bandı Tüm Vücut',
+    nameEn: 'Resistance Band Full Body',
     description: 'Tek direnç bandı ile evde uygulanabilen tüm vücut programı.',
+    descriptionEn: 'Full-body program you can do at home with a single band.',
     level: 'beginner',
     goals: ['general', 'muscle'],
     location: 'home',
@@ -277,7 +307,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-circuit',
     name: 'Yağ Yakıcı Devre',
+    nameEn: 'Fat-Burning Circuit',
     description: 'Kısa dinlenmelerle metabolizmayı hızlandıran devre antrenmanı.',
+    descriptionEn: 'Circuit training with short rests to boost metabolism.',
     level: 'intermediate',
     goals: ['fatloss'],
     location: 'anywhere',
@@ -294,7 +326,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-stretch',
     name: 'Esneklik & Mobilite',
+    nameEn: 'Flexibility & Mobility',
     description: 'Tüm vücut için rahatlama ve hareket açıklığı rutini.',
+    descriptionEn: 'Relaxation and range-of-motion routine for the whole body.',
     level: 'beginner',
     goals: ['general'],
     location: 'anywhere',
@@ -313,7 +347,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-calisthenics',
     name: 'Calisthenics İleri',
+    nameEn: 'Advanced Calisthenics',
     description: 'Barfiks, dips ve ileri vücut ağırlığı hareketleriyle üst vücut ustalığı.',
+    descriptionEn: 'Upper-body mastery with pull-ups, dips and advanced bodyweight moves.',
     level: 'advanced',
     goals: ['strength', 'muscle'],
     location: 'anywhere',
@@ -330,7 +366,9 @@ export const PRESET_ROUTINES: Routine[] = [
   {
     id: 'preset-dumbbell',
     name: 'Dambıl Tüm Vücut',
+    nameEn: 'Dumbbell Full Body',
     description: 'Sadece dambıl ile evde veya salonda uygulanabilen tüm vücut programı.',
+    descriptionEn: 'Full-body program doable at home or the gym with just dumbbells.',
     level: 'beginner',
     goals: ['muscle', 'general'],
     location: 'anywhere',
@@ -362,6 +400,14 @@ export function routineMinutes(r: Routine): number {
     return n + e.sets * work + (e.sets - 1) * e.restSec;
   }, 0);
   return Math.max(1, Math.round(sec / 60));
+}
+
+export function routineName(r: Routine, lang: 'tr' | 'en'): string {
+  return lang === 'en' && r.nameEn ? r.nameEn : r.name;
+}
+
+export function routineDesc(r: Routine, lang: 'tr' | 'en'): string {
+  return lang === 'en' && r.descriptionEn ? r.descriptionEn : r.description;
 }
 
 export function recommendedRoutineId(

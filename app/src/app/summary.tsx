@@ -4,6 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2, Clock, Home, Layers, Repeat } from 'lucide-react-native';
 import { useAppStore } from '../store/appStore';
+import { getExercise } from '../data/exercises';
+import { PRESET_ROUTINES, routineName } from '../data/programs';
+import { useI18n } from '../i18n';
 import { colors, fonts, radius, spacing } from '../theme';
 import { ExerciseThumb } from '../components/ExerciseImage';
 import { Button, Card, EmptyState } from '../components/ui';
@@ -14,6 +17,7 @@ export default function SummaryScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { lang, t, exName } = useI18n();
   const sessions = useAppStore((s) => s.sessions);
 
   const session = useMemo(() => sessions.find((s) => s.id === sessionId), [sessions, sessionId]);
@@ -25,8 +29,8 @@ export default function SummaryScreen() {
   if (!session) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <EmptyState title="Oturum bulunamadı" />
-        <Button title="Ana Sayfa" onPress={() => router.replace('/(tabs)')} style={{ marginHorizontal: spacing.xl }} />
+        <EmptyState title={t('sum.notFound')} />
+        <Button title={t('sum.home')} onPress={() => router.replace('/(tabs)')} style={{ marginHorizontal: spacing.xl }} />
       </View>
     );
   }
@@ -39,36 +43,43 @@ export default function SummaryScreen() {
         <View style={styles.checkWrap}>
           <CheckCircle2 color={colors.accent} size={72} />
         </View>
-        <Text style={styles.title}>Antrenman Tamamlandı!</Text>
-        <Text style={styles.subtitle}>{session.routineName}</Text>
+        <Text style={styles.title}>{t('sum.title')}</Text>
+        <Text style={styles.subtitle}>
+          {(() => { const r = PRESET_ROUTINES.find((p) => p.id === session.routineId); return r ? routineName(r, lang) : session.routineName; })()}
+        </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Clock color={colors.info} size={18} />
             <Text style={styles.statValue}>{fmtDuration(session.durationSec)}</Text>
-            <Text style={styles.statLabel}>Süre</Text>
+            <Text style={styles.statLabel}>{t('sum.duration')}</Text>
           </View>
           <View style={styles.statBox}>
             <Layers color={colors.primary} size={18} />
             <Text style={styles.statValue}>{session.totalSets}</Text>
-            <Text style={styles.statLabel}>Set</Text>
+            <Text style={styles.statLabel}>{t('sum.sets')}</Text>
           </View>
           <View style={styles.statBox}>
             <Repeat color={colors.accent} size={18} />
             <Text style={styles.statValue}>{totalReps}</Text>
-            <Text style={styles.statLabel}>Tekrar/Sn</Text>
+            <Text style={styles.statLabel}>{t('sum.repsSec')}</Text>
           </View>
         </View>
 
-        <Text style={styles.listTitle}>YAPILAN EGZERSİZLER</Text>
+        <Text style={styles.listTitle}>{t('sum.completed')}</Text>
         <Card style={{ padding: 0 }}>
           {session.exercises.map((e, i) => (
             <View key={e.exerciseId} style={[styles.exRow, i > 0 && styles.exBorder]}>
               <ExerciseThumb id={e.exerciseId} size={46} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.exName} numberOfLines={1}>{e.name}</Text>
+                <Text style={styles.exName} numberOfLines={1}>
+                  {(() => { const ex = getExercise(e.exerciseId); return ex ? exName(ex) : e.name; })()}
+                </Text>
                 <Text style={styles.exMeta}>
-                  {e.setsCompleted} set × {e.timed ? `${Math.round(e.repsCompleted / e.setsCompleted)} sn` : `${Math.round(e.repsCompleted / e.setsCompleted)} tekrar`}
+                  {t('sum.exMeta', {
+                    sets: e.setsCompleted,
+                    reps: `${Math.round(e.repsCompleted / e.setsCompleted)} ${e.timed ? t('common.sec') : t('common.reps')}`,
+                  })}
                 </Text>
               </View>
               <CheckCircle2 color={colors.accent} size={18} />
@@ -79,7 +90,7 @@ export default function SummaryScreen() {
 
       <View style={[styles.ctaBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Button
-          title="Ana Sayfaya Dön"
+          title={t('sum.backHome')}
           icon={<Home color={colors.onPrimary} size={18} />}
           onPress={() => router.replace('/(tabs)')}
           style={{ flex: 1 }}

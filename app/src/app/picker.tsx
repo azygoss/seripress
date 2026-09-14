@@ -4,9 +4,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, Heart, Plus, Search, X } from 'lucide-react-native';
 import { EXERCISES, getExercise, searchExercises, type Exercise } from '../data/exercises';
-import { BODY_PART_TR, EQUIPMENT_TR, tr } from '../data/labels';
+import { BODY_PART_TR, EQUIPMENT_TR } from '../data/labels';
 import type { RoutineExercise } from '../data/programs';
 import { uid, useAppStore } from '../store/appStore';
+import { useI18n } from '../i18n';
 import { colors, fonts, radius, spacing, BODY_PART_COLORS } from '../theme';
 import { ExerciseThumb } from '../components/ExerciseImage';
 import { EmptyState } from '../components/ui';
@@ -15,6 +16,7 @@ export default function PickerScreen() {
   const params = useLocalSearchParams<{ mode?: string; exerciseId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lb, exName } = useI18n();
   const { customRoutines, saveCustomRoutine, setPendingPick, restSec, favorites } = useAppStore();
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
@@ -48,8 +50,8 @@ export default function PickerScreen() {
     if (!sourceExercise) return;
     saveCustomRoutine({
       id: `custom-${uid()}`,
-      name: 'Yeni Program',
-      description: 'Özel program',
+      name: t('pick.newProgramName'),
+      description: t('bld.customDesc'),
       level: 'beginner',
       goals: ['general'],
       location: 'anywhere',
@@ -63,9 +65,9 @@ export default function PickerScreen() {
     <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {mode === 'addToRoutine' ? 'Programa Ekle' : 'Egzersiz Seç'}
+          {mode === 'addToRoutine' ? t('pick.addToProgram') : t('pick.choose')}
         </Text>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn} accessibilityLabel="Kapat">
+        <Pressable onPress={() => router.back()} style={styles.closeBtn} accessibilityLabel={t('common.close')}>
           <X color={colors.text} size={20} />
         </Pressable>
       </View>
@@ -80,20 +82,20 @@ export default function PickerScreen() {
               <View style={styles.newIcon}>
                 <Plus color={colors.primary} size={20} />
               </View>
-              <Text style={styles.newText}>Yeni program oluştur</Text>
+              <Text style={styles.newText}>{t('pick.newProgram')}</Text>
             </Pressable>
           }
           ListEmptyComponent={
             <EmptyState
-              title="Özel programın yok"
-              subtitle="Önce bir program oluştur — seçtiğin egzersiz otomatik eklenecek."
+              title={t('pick.noCustom')}
+              subtitle={t('pick.noCustomSub')}
             />
           }
           renderItem={({ item }) => (
             <Pressable style={styles.routineRow} onPress={() => addToRoutine(item.id)}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.routineName}>{item.name}</Text>
-                <Text style={styles.routineMeta}>{item.exercises.length} egzersiz</Text>
+                <Text style={styles.routineMeta}>{t('common.exerciseCount', { n: item.exercises.length })}</Text>
               </View>
               <ChevronRight color={colors.textDim} size={18} />
             </Pressable>
@@ -106,7 +108,7 @@ export default function PickerScreen() {
               <Search color={colors.textDim} size={18} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Egzersiz ara..."
+                placeholder={t('ex.searchPlaceholder')}
                 placeholderTextColor={colors.textDim}
                 value={query}
                 onChangeText={setQuery}
@@ -114,7 +116,7 @@ export default function PickerScreen() {
                 autoFocus
               />
               {query.length > 0 && (
-                <Pressable onPress={() => setQuery('')} accessibilityLabel="Temizle">
+                <Pressable onPress={() => setQuery('')} accessibilityLabel={t('common.clear')}>
                   <X color={colors.textDim} size={16} />
                 </Pressable>
               )}
@@ -122,13 +124,13 @@ export default function PickerScreen() {
             <Pressable
               style={[styles.favToggle, favOnly && { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]}
               onPress={() => setFavOnly((v) => !v)}
-              accessibilityLabel="Sadece favoriler"
+              accessibilityLabel={t('common.onlyFavorites')}
             >
               <Heart color={favOnly ? colors.danger : colors.textMuted} size={18} fill={favOnly ? colors.danger : 'none'} />
             </Pressable>
           </View>
           {favOnly && favorites.length === 0 && (
-            <Text style={styles.favHint}>Henüz favori egzersizin yok — egzersiz listesinde kalbe dokunarak ekleyebilirsin.</Text>
+            <Text style={styles.favHint}>{t('pick.favHint')}</Text>
           )}
           <FlatList
             data={results}
@@ -140,8 +142,8 @@ export default function PickerScreen() {
             ListEmptyComponent={
               <EmptyState
                 icon={<Search color={colors.textDim} size={36} />}
-                title="Sonuç bulunamadı"
-                subtitle="Farklı bir isimle aramayı deneyin."
+                title={t('common.noResults')}
+                subtitle={t('pick.emptySub')}
               />
             }
             ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -149,11 +151,11 @@ export default function PickerScreen() {
               <Pressable style={styles.row} onPress={() => onPickExercise(item)}>
                 <ExerciseThumb id={item.id} size={52} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.rowName} numberOfLines={1}>{exName(item)}</Text>
                   <View style={styles.rowMeta}>
                     <View style={[styles.dot, { backgroundColor: BODY_PART_COLORS[item.bodyPart] ?? colors.primary }]} />
                     <Text style={styles.rowMetaText}>
-                      {tr(BODY_PART_TR, item.bodyPart)} · {tr(EQUIPMENT_TR, item.equipment)}
+                      {lb(BODY_PART_TR, item.bodyPart)} · {lb(EQUIPMENT_TR, item.equipment)}
                     </Text>
                   </View>
                 </View>

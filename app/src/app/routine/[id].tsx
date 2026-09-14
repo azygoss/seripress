@@ -4,9 +4,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Clock, Dumbbell, Layers, Pencil, Play } from 'lucide-react-native';
 import { getExercise } from '../../data/exercises';
-import { BODY_PART_TR, LEVELS, tr } from '../../data/labels';
-import { PRESET_ROUTINES, routineMinutes, routineSetCount } from '../../data/programs';
+import { BODY_PART_TR, LEVELS } from '../../data/labels';
+import { PRESET_ROUTINES, routineDesc, routineMinutes, routineName, routineSetCount } from '../../data/programs';
 import { useAppStore } from '../../store/appStore';
+import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing } from '../../theme';
 import { ExerciseThumb } from '../../components/ExerciseImage';
 import { Button, Card, EmptyState } from '../../components/ui';
@@ -15,6 +16,7 @@ export default function RoutineDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { lang, t, lb, lo, exName } = useI18n();
   const { customRoutines } = useAppStore();
 
   const routine = useMemo(() => {
@@ -24,10 +26,10 @@ export default function RoutineDetail() {
   if (!routine) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + spacing.lg }]}>
-        <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel="Geri">
+        <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
           <ArrowLeft color={colors.text} size={22} />
         </Pressable>
-        <EmptyState title="Program bulunamadı" />
+        <EmptyState title={t('prog.notFound')} />
       </View>
     );
   }
@@ -40,14 +42,14 @@ export default function RoutineDetail() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-          <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel="Geri">
+          <Pressable onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
             <ArrowLeft color={colors.text} size={22} />
           </Pressable>
           {routine.custom && (
             <Pressable
               onPress={() => router.push({ pathname: '/builder', params: { id: routine.id } })}
               style={styles.back}
-              accessibilityLabel="Düzenle"
+              accessibilityLabel={t('common.edit')}
             >
               <Pencil color={colors.text} size={19} />
             </Pressable>
@@ -55,28 +57,28 @@ export default function RoutineDetail() {
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.name}>{routine.name}</Text>
-          <Text style={styles.desc}>{routine.description}</Text>
+          <Text style={styles.name}>{routineName(routine, lang)}</Text>
+          <Text style={styles.desc}>{routineDesc(routine, lang)}</Text>
 
           <View style={styles.metaRow}>
             <View style={styles.metaBox}>
               <Dumbbell color={colors.primary} size={16} />
               <Text style={styles.metaValue}>{routine.exercises.length}</Text>
-              <Text style={styles.metaLabel}>Egzersiz</Text>
+              <Text style={styles.metaLabel}>{t('prog.exercise')}</Text>
             </View>
             <View style={styles.metaBox}>
               <Layers color={colors.accent} size={16} />
               <Text style={styles.metaValue}>{sets}</Text>
-              <Text style={styles.metaLabel}>Set</Text>
+              <Text style={styles.metaLabel}>{t('prog.sets')}</Text>
             </View>
             <View style={styles.metaBox}>
               <Clock color={colors.info} size={16} />
               <Text style={styles.metaValue}>~{mins}</Text>
-              <Text style={styles.metaLabel}>Dakika</Text>
+              <Text style={styles.metaLabel}>{t('prog.minutes')}</Text>
             </View>
           </View>
 
-          <Text style={styles.listTitle}>EGZERSİZLER</Text>
+          <Text style={styles.listTitle}>{t('prog.exercises')}</Text>
           <Card style={{ paddingVertical: 0, paddingHorizontal: 0 }}>
             {routine.exercises.map((re, i) => {
               const e = getExercise(re.exerciseId);
@@ -90,10 +92,10 @@ export default function RoutineDetail() {
                   <Text style={styles.exIndex}>{i + 1}</Text>
                   <ExerciseThumb id={e.id} size={52} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.exName} numberOfLines={1}>{e.name}</Text>
+                    <Text style={styles.exName} numberOfLines={1}>{exName(e)}</Text>
                     <Text style={styles.exMeta}>
-                      {re.sets} × {re.timed ? `${re.reps} sn` : `${re.reps} tekrar`} · {re.restSec}sn dinlenme ·{' '}
-                      {tr(BODY_PART_TR, e.bodyPart)}
+                      {t('prog.setsXreps', { sets: re.sets, reps: `${re.reps} ${re.timed ? t('common.sec') : t('common.reps')}` })}{' '}
+                      · {re.restSec}{t('common.secAbbr')} {t('common.rest')} · {lb(BODY_PART_TR, e.bodyPart)}
                     </Text>
                   </View>
                 </Pressable>
@@ -102,14 +104,14 @@ export default function RoutineDetail() {
           </Card>
 
           <Text style={styles.levelText}>
-            Seviye: {LEVELS.find((l) => l.id === routine.level)?.label} · Dinlenme varsayılanı {restSec}sn
+            {t('prog.levelLine', { level: lo(LEVELS.find((l) => l.id === routine.level)), sec: restSec })}
           </Text>
         </View>
       </ScrollView>
 
       <View style={[styles.ctaBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Button
-          title="Antrenmanı Başlat"
+          title={t('prog.startWorkout')}
           icon={<Play color={colors.onPrimary} size={18} fill={colors.onPrimary} />}
           onPress={() => router.push(`/session/${routine.id}`)}
           style={{ flex: 1 }}

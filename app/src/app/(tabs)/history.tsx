@@ -16,28 +16,37 @@ import { ExerciseThumb } from '../../components/ExerciseImage';
 import { EmptyState, StatTile, Title } from '../../components/ui';
 import { fmtTime, relDay } from '../../lib/format';
 import { fmtDuration } from '../../lib/format';
+import { PRESET_ROUTINES, routineName } from '../../data/programs';
+import { useI18n } from '../../i18n';
+
+/** Kayıt zamanındaki isim yerine preset programları aktif dile çevir */
+const sessionName = (s: SessionLog, lang: 'tr' | 'en') => {
+  const preset = PRESET_ROUTINES.find((r) => r.id === s.routineId);
+  return preset ? routineName(preset, lang) : s.routineName;
+};
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const { lang, t } = useI18n();
   const { sessions, deleteSession } = useAppStore();
 
-  const week = useMemo(() => weekActivity(sessions), [sessions]);
+  const week = useMemo(() => weekActivity(sessions, lang), [sessions, lang]);
   const maxMin = Math.max(...week.map((d) => d.minutes), 1);
 
   const sections = useMemo(() => {
     const groups = new Map<string, SessionLog[]>();
     for (const s of sessions) {
-      const k = relDay(s.endedAt);
+      const k = relDay(s.endedAt, lang);
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k)!.push(s);
     }
     return [...groups.entries()].map(([title, data]) => ({ title, data }));
-  }, [sessions]);
+  }, [sessions, lang]);
 
   const confirmDelete = (s: SessionLog) =>
-    Alert.alert('Kaydı Sil', `"${s.routineName}" antrenmanı silinsin mi?`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: () => deleteSession(s.id) },
+    Alert.alert(t('hist.deleteTitle'), t('hist.deleteMsg', { name: sessionName(s, lang) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deleteSession(s.id) },
     ]);
 
   return (
@@ -50,19 +59,19 @@ export default function HistoryScreen() {
         contentContainerStyle={{ paddingBottom: 110 }}
         ListHeaderComponent={
           <View>
-            <Title>Geçmiş</Title>
+            <Title>{t('hist.title')}</Title>
             <View style={styles.statsRow}>
-              <StatTile value={streakDays(sessions)} label="Seri" color={colors.primary} icon={<Flame color={colors.primary} size={18} />} />
+              <StatTile value={streakDays(sessions)} label={t('home.streak')} color={colors.primary} icon={<Flame color={colors.primary} size={18} />} />
               <View style={{ width: spacing.md }} />
-              <StatTile value={totalWorkouts(sessions)} label="Antrenman" icon={<CalendarCheck color={colors.accent} size={18} />} />
+              <StatTile value={totalWorkouts(sessions)} label={t('home.workouts')} icon={<CalendarCheck color={colors.accent} size={18} />} />
               <View style={{ width: spacing.md }} />
-              <StatTile value={totalMinutes(sessions)} label="Dakika" icon={<Clock color={colors.info} size={18} />} />
+              <StatTile value={totalMinutes(sessions)} label={t('home.minutes')} icon={<Clock color={colors.info} size={18} />} />
             </View>
             <View style={[styles.statsRow, { marginTop: spacing.md }]}>
-              <StatTile value={totalSets(sessions)} label="Toplam Set" icon={<Layers color={colors.warning} size={18} />} />
+              <StatTile value={totalSets(sessions)} label={t('hist.totalSets')} icon={<Layers color={colors.warning} size={18} />} />
             </View>
 
-            <Text style={styles.weekTitle}>SON 7 GÜN</Text>
+            <Text style={styles.weekTitle}>{t('hist.last7')}</Text>
             <View style={styles.weekCard}>
               {week.map((d) => (
                 <View key={d.label} style={styles.weekCol}>
@@ -82,7 +91,7 @@ export default function HistoryScreen() {
                 </View>
               ))}
             </View>
-            <Text style={styles.weekTitle}>ANTRENMANLAR</Text>
+            <Text style={styles.weekTitle}>{t('hist.workouts')}</Text>
           </View>
         }
         renderSectionHeader={({ section }) => <Text style={styles.dayHeader}>{section.title}</Text>}
@@ -90,13 +99,17 @@ export default function HistoryScreen() {
           <View style={styles.sessionCard}>
             <ExerciseThumb id={item.exercises[0]?.exerciseId ?? '0001'} size={52} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.sessionName} numberOfLines={1}>{item.routineName}</Text>
+              <Text style={styles.sessionName} numberOfLines={1}>{sessionName(item, lang)}</Text>
               <Text style={styles.sessionMeta}>
-                {fmtTime(item.endedAt)} · {fmtDuration(item.durationSec)} · {item.totalSets} set ·{' '}
-                {item.exercises.length} egzersiz
+                {t('hist.sessionMeta', {
+                  time: fmtTime(item.endedAt),
+                  dur: fmtDuration(item.durationSec),
+                  sets: item.totalSets,
+                  ex: item.exercises.length,
+                })}
               </Text>
             </View>
-            <Pressable onPress={() => confirmDelete(item)} hitSlop={8} accessibilityLabel="Kaydı sil" style={{ padding: 4 }}>
+            <Pressable onPress={() => confirmDelete(item)} hitSlop={8} accessibilityLabel={t('hist.deleteRecord')} style={{ padding: 4 }}>
               <Trash2 color={colors.textDim} size={17} />
             </Pressable>
           </View>
@@ -104,8 +117,8 @@ export default function HistoryScreen() {
         ListEmptyComponent={
           <EmptyState
             icon={<CalendarCheck color={colors.textDim} size={40} />}
-            title="Henüz antrenman yok"
-            subtitle="Bir program başlat, ilk antrenmanın burada görünsün."
+            title={t('hist.empty')}
+            subtitle={t('hist.emptySub')}
           />
         }
       />

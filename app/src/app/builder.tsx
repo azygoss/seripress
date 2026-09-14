@@ -4,9 +4,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowLeft, ArrowUp, Minus, Plus, Save, Trash2 } from 'lucide-react-native';
 import { getExercise } from '../data/exercises';
-import { BODY_PART_TR, tr } from '../data/labels';
+import { BODY_PART_TR } from '../data/labels';
 import type { RoutineExercise } from '../data/programs';
 import { uid, useAppStore } from '../store/appStore';
+import { useI18n } from '../i18n';
 import { colors, fonts, radius, spacing } from '../theme';
 import { ExerciseThumb } from '../components/ExerciseImage';
 import { Button, Card, EmptyState } from '../components/ui';
@@ -15,6 +16,7 @@ export default function BuilderScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t, lb, exName } = useI18n();
   const { customRoutines, saveCustomRoutine, pendingPick, setPendingPick, restSec } = useAppStore();
 
   const existing = useMemo(() => customRoutines.find((r) => r.id === id), [id, customRoutines]);
@@ -49,17 +51,17 @@ export default function BuilderScreen() {
 
   const save = () => {
     if (!name.trim()) {
-      Alert.alert('İsim gerekli', 'Programına bir isim ver.');
+      Alert.alert(t('bld.nameRequired'), t('bld.nameRequiredMsg'));
       return;
     }
     if (exercises.length === 0) {
-      Alert.alert('Egzersiz ekle', 'En az bir egzersiz eklemelisin.');
+      Alert.alert(t('bld.needExercise'), t('bld.needExerciseMsg'));
       return;
     }
     saveCustomRoutine({
       id: existing?.id ?? `custom-${uid()}`,
       name: name.trim(),
-      description: 'Özel program',
+      description: t('bld.customDesc'),
       level: 'beginner',
       goals: ['general'],
       location: 'anywhere',
@@ -72,10 +74,10 @@ export default function BuilderScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel="Geri">
+        <Pressable onPress={() => router.back()} style={styles.iconBtn} accessibilityLabel={t('common.back')}>
           <ArrowLeft color={colors.text} size={22} />
         </Pressable>
-        <Text style={styles.headerTitle}>{existing ? 'Programı Düzenle' : 'Yeni Program'}</Text>
+        <Text style={styles.headerTitle}>{existing ? t('bld.edit') : t('bld.new')}</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -84,10 +86,10 @@ export default function BuilderScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.fieldLabel}>Program adı</Text>
+        <Text style={styles.fieldLabel}>{t('bld.nameLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Örn: Sabah Rutini"
+          placeholder={t('bld.namePlaceholder')}
           placeholderTextColor={colors.textDim}
           value={name}
           onChangeText={setName}
@@ -95,20 +97,20 @@ export default function BuilderScreen() {
         />
 
         <View style={styles.listHead}>
-          <Text style={styles.listTitle}>Egzersizler ({exercises.length})</Text>
+          <Text style={styles.listTitle}>{t('bld.exercises', { n: exercises.length })}</Text>
           <Pressable
             style={styles.addBtn}
             onPress={() => router.push({ pathname: '/picker', params: { mode: 'pick' } })}
           >
             <Plus color={colors.onPrimary} size={16} />
-            <Text style={styles.addBtnText}>Ekle</Text>
+            <Text style={styles.addBtnText}>{t('bld.add')}</Text>
           </Pressable>
         </View>
 
         {exercises.length === 0 ? (
           <EmptyState
-            title="Henüz egzersiz yok"
-            subtitle="'Ekle' ile kütüphaneden egzersiz seç."
+            title={t('bld.empty')}
+            subtitle={t('bld.emptySub')}
           />
         ) : (
           exercises.map((re, i) => {
@@ -119,36 +121,36 @@ export default function BuilderScreen() {
                 <View style={styles.exTop}>
                   <ExerciseThumb id={e.id} size={52} />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.exName} numberOfLines={1}>{e.name}</Text>
-                    <Text style={styles.exMeta}>{tr(BODY_PART_TR, e.bodyPart)}</Text>
+                    <Text style={styles.exName} numberOfLines={1}>{exName(e)}</Text>
+                    <Text style={styles.exMeta}>{lb(BODY_PART_TR, e.bodyPart)}</Text>
                   </View>
-                  <Pressable onPress={() => move(i, -1)} hitSlop={6} style={styles.ordBtn} accessibilityLabel="Yukarı">
+                  <Pressable onPress={() => move(i, -1)} hitSlop={6} style={styles.ordBtn} accessibilityLabel={t('bld.up')}>
                     <ArrowUp color={i === 0 ? colors.border : colors.textMuted} size={16} />
                   </Pressable>
-                  <Pressable onPress={() => move(i, 1)} hitSlop={6} style={styles.ordBtn} accessibilityLabel="Aşağı">
+                  <Pressable onPress={() => move(i, 1)} hitSlop={6} style={styles.ordBtn} accessibilityLabel={t('bld.down')}>
                     <ArrowDown color={i === exercises.length - 1 ? colors.border : colors.textMuted} size={16} />
                   </Pressable>
-                  <Pressable onPress={() => remove(i)} hitSlop={6} style={styles.ordBtn} accessibilityLabel="Kaldır">
+                  <Pressable onPress={() => remove(i)} hitSlop={6} style={styles.ordBtn} accessibilityLabel={t('bld.remove')}>
                     <Trash2 color={colors.danger} size={16} />
                   </Pressable>
                 </View>
                 <View style={styles.exControls}>
-                  <Stepper label="Set" value={re.sets} min={1} max={10} onChange={(v) => update(i, { sets: v })} />
+                  <Stepper label={t('bld.sets')} value={re.sets} min={1} max={10} onChange={(v) => update(i, { sets: v })} />
                   <Stepper
-                    label={re.timed ? 'Sn' : 'Tekrar'}
+                    label={re.timed ? t('bld.secLabel') : t('bld.repsLabel')}
                     value={re.reps}
                     min={re.timed ? 5 : 1}
                     max={re.timed ? 300 : 50}
                     onChange={(v) => update(i, { reps: v })}
                   />
-                  <Stepper label="Dinlenme" value={re.restSec} min={0} max={300} step={10} onChange={(v) => update(i, { restSec: v })} suffix="sn" />
+                  <Stepper label={t('bld.restLabel')} value={re.restSec} min={0} max={300} step={10} onChange={(v) => update(i, { restSec: v })} suffix={t('common.secAbbr')} />
                 </View>
                 <Pressable
                   style={styles.timedToggle}
                   onPress={() => update(i, { timed: !re.timed, reps: re.timed ? 12 : 30 })}
                 >
                   <View style={[styles.check, re.timed && styles.checkOn]} />
-                  <Text style={styles.timedText}>Süreli egzersiz (tekrar yerine saniye)</Text>
+                  <Text style={styles.timedText}>{t('bld.timed')}</Text>
                 </Pressable>
               </Card>
             );
@@ -158,7 +160,7 @@ export default function BuilderScreen() {
 
       <View style={[styles.ctaBar, { paddingBottom: insets.bottom + spacing.md }]}>
         <Button
-          title="Kaydet"
+          title={t('common.save')}
           icon={<Save color={colors.onPrimary} size={18} />}
           onPress={save}
           style={{ flex: 1 }}
@@ -185,18 +187,19 @@ function Stepper({
   step?: number;
   suffix?: string;
 }) {
+  const { t } = useI18n();
   return (
     <View style={styles.stepper}>
       <Text style={styles.stepperLabel}>{label}</Text>
       <View style={styles.stepperRow}>
-        <Pressable style={styles.stepBtn} onPress={() => onChange(Math.max(min, value - step))} accessibilityLabel={`${label} azalt`}>
+        <Pressable style={styles.stepBtn} onPress={() => onChange(Math.max(min, value - step))} accessibilityLabel={`${label} ${t('common.decrease')}`}>
           <Minus color={colors.text} size={14} />
         </Pressable>
         <Text style={styles.stepValue}>
           {value}
           {suffix ?? ''}
         </Text>
-        <Pressable style={styles.stepBtn} onPress={() => onChange(Math.min(max, value + step))} accessibilityLabel={`${label} arttır`}>
+        <Pressable style={styles.stepBtn} onPress={() => onChange(Math.min(max, value + step))} accessibilityLabel={`${label} ${t('common.increase')}`}>
           <Plus color={colors.text} size={14} />
         </Pressable>
       </View>
