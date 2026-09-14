@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowDown, ArrowLeft, ArrowUp, Minus, Plus, Save, Trash2 } from 'lucide-react-native';
+import { ArrowDown, ArrowLeft, ArrowUp, Link2, Minus, Plus, Save, Trash2 } from 'lucide-react-native';
 import { getExercise } from '../data/exercises';
 import { BODY_PART_TR } from '../data/labels';
 import type { RoutineExercise } from '../data/programs';
@@ -48,6 +48,22 @@ export default function BuilderScreen() {
     });
 
   const remove = (i: number) => setExercises((list) => list.filter((_, j) => j !== i));
+
+  /** i ile i+1'i superset olarak bağla / çöz */
+  const toggleLink = (i: number) =>
+    setExercises((list) => {
+      if (i + 1 >= list.length) return list;
+      const copy = [...list];
+      const linked = copy[i].group != null && copy[i].group === copy[i + 1].group;
+      if (linked) {
+        copy[i + 1] = { ...copy[i + 1], group: undefined };
+      } else {
+        const g = Math.max(0, ...copy.map((e) => e.group ?? 0)) + 1;
+        copy[i] = { ...copy[i], group: g };
+        copy[i + 1] = { ...copy[i + 1], group: g };
+      }
+      return copy;
+    });
 
   const save = () => {
     if (!name.trim()) {
@@ -134,6 +150,22 @@ export default function BuilderScreen() {
                     <Trash2 color={colors.danger} size={16} />
                   </Pressable>
                 </View>
+                {i < exercises.length - 1 && (
+                  <Pressable style={styles.linkRow} onPress={() => toggleLink(i)} accessibilityLabel={t('sess.superset')}>
+                    <Link2
+                      color={re.group != null && exercises[i + 1].group === re.group ? colors.accent : colors.textDim}
+                      size={14}
+                    />
+                    <Text
+                      style={[
+                        styles.linkText,
+                        re.group != null && exercises[i + 1].group === re.group && { color: colors.accent },
+                      ]}
+                    >
+                      {t('sess.superset')}
+                    </Text>
+                  </Pressable>
+                )}
                 <View style={styles.exControls}>
                   <Stepper label={t('bld.sets')} value={re.sets} min={1} max={10} onChange={(v) => update(i, { sets: v })} />
                   <Stepper
@@ -266,6 +298,8 @@ const styles = StyleSheet.create({
   check: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: colors.border },
   checkOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   timedText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.textMuted },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm },
+  linkText: { fontFamily: fonts.bodySb, fontSize: 11, color: colors.textDim, letterSpacing: 1 },
   ctaBar: {
     position: 'absolute',
     bottom: 0,

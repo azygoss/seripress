@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronRight, Flame, Play, Star, Timer, Trophy } from 'lucide-react-native';
+import { BarChart3, ChevronRight, Flame, Play, Sparkles, Star, Timer, Trophy } from 'lucide-react-native';
 import { BODY_PARTS, countByBodyPart, EXERCISES } from '../../data/exercises';
 import { BODY_PART_TR, LEVELS, GOALS } from '../../data/labels';
 import { PRESET_ROUTINES, recommendedRoutineId, routineMinutes, routineName } from '../../data/programs';
@@ -80,6 +80,13 @@ export default function HomeScreen() {
           </Text>
         </View>
         <Pressable
+          style={styles.statsBtn}
+          onPress={() => router.push('/stats')}
+          accessibilityLabel={t('stats.title')}
+        >
+          <BarChart3 color={colors.text} size={20} />
+        </Pressable>
+        <Pressable
           style={styles.avatar}
           onPress={() => router.push('/profile')}
           accessibilityLabel={t('tab.profile')}
@@ -108,6 +115,18 @@ export default function HomeScreen() {
           label={t('home.minutes')}
           icon={<Timer color={colors.info} size={18} />}
         />
+      </View>
+
+      {/* Quick actions */}
+      <View style={styles.quickRow}>
+        <Pressable style={styles.quickCard} onPress={() => router.push('/generate')}>
+          <Sparkles color={colors.primary} size={18} />
+          <Text style={styles.quickText}>{t('gen.title')}</Text>
+        </Pressable>
+        <Pressable style={styles.quickCard} onPress={() => router.push('/timer')}>
+          <Timer color={colors.accent} size={18} />
+          <Text style={styles.quickText}>{t('timer.title')}</Text>
+        </Pressable>
       </View>
 
       {/* Recommended workout */}
@@ -277,7 +296,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { fontFamily: fonts.display, fontSize: 22, color: colors.onPrimary },
+  statsBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
   statsRow: { flexDirection: 'row', marginBottom: spacing.sm },
+  quickRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm, marginBottom: spacing.xs },
+  quickCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+  },
+  quickText: { fontFamily: fonts.bodySb, fontSize: 14, color: colors.text },
   heroCard: {
     flexDirection: 'row',
     alignItems: 'center',

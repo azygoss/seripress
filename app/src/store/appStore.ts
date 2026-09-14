@@ -10,6 +10,8 @@ export interface SessionExerciseLog {
   setsCompleted: number;
   repsCompleted: number; // timed için toplam saniye
   timed: boolean;
+  /** Set başına kg — ağırlıksız hareketlerde boş */
+  weights?: (number | null)[];
 }
 
 export interface SessionLog {
@@ -21,6 +23,14 @@ export interface SessionLog {
   durationSec: number;
   totalSets: number;
   exercises: SessionExerciseLog[];
+  /** Bu antrenmanda kırılan PR'ların egzersiz id'leri */
+  newPrs?: string[];
+}
+
+export interface PRRecord {
+  weight: number;
+  reps: number;
+  at: number;
 }
 
 export type Gender = 'male' | 'female' | 'other';
@@ -47,6 +57,8 @@ interface AppState extends ProfileStats {
   favorites: string[];
   customRoutines: Routine[];
   sessions: SessionLog[];
+  /** exerciseId -> en iyi ağırlık kaydı */
+  prs: Record<string, PRRecord>;
   /** Builder'a egzersiz seçimini taşımak için geçici alan (persist edilmez) */
   pendingPick: string | null;
 
@@ -65,6 +77,7 @@ interface AppState extends ProfileStats {
   saveCustomRoutine: (r: Routine) => void;
   deleteCustomRoutine: (id: string) => void;
   logSession: (s: SessionLog) => void;
+  recordPR: (exerciseId: string, weight: number, reps: number) => boolean;
   deleteSession: (id: string) => void;
   resetAll: () => void;
 }
@@ -91,6 +104,7 @@ export const useAppStore = create<AppState>()(
       favorites: [],
       customRoutines: [],
       sessions: [],
+      prs: {},
       pendingPick: null,
 
       setHydrated: (v) => set({ hydrated: v }),
@@ -120,6 +134,19 @@ export const useAppStore = create<AppState>()(
       deleteCustomRoutine: (id) =>
         set((s) => ({ customRoutines: s.customRoutines.filter((c) => c.id !== id) })),
       logSession: (s) => set((st) => ({ sessions: [s, ...st.sessions] })),
+      recordPR: (exerciseId, weight, reps) => {
+        let improved = false;
+        set((s) => {
+          const cur = s.prs[exerciseId];
+          // daha ağır, ya da aynı ağırlıkta daha fazla tekrar = yeni rekor
+          if (!cur || weight > cur.weight || (weight === cur.weight && reps > cur.reps)) {
+            improved = true;
+            return { prs: { ...s.prs, [exerciseId]: { weight, reps, at: Date.now() } } };
+          }
+          return {};
+        });
+        return improved;
+      },
       deleteSession: (id) =>
         set((s) => ({ sessions: s.sessions.filter((x) => x.id !== id) })),
       resetAll: () =>
@@ -139,6 +166,7 @@ export const useAppStore = create<AppState>()(
           favorites: [],
           customRoutines: [],
           sessions: [],
+          prs: {},
         }),
     }),
     {
@@ -161,6 +189,7 @@ export const useAppStore = create<AppState>()(
         favorites: s.favorites,
         customRoutines: s.customRoutines,
         sessions: s.sessions,
+        prs: s.prs,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

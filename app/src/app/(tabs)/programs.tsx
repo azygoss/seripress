@@ -45,13 +45,22 @@ export default function ProgramsScreen() {
 
       <View style={styles.myHeader}>
         <SectionHeader title={t('prog.yours')} />
-        <Button
-          title={t('prog.create')}
-          variant="ghost"
-          icon={<Plus color={colors.text} size={16} />}
-          onPress={() => router.push('/builder')}
-          style={{ minHeight: 40, paddingVertical: spacing.sm }}
-        />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Button
+            title={t('prog.generate')}
+            variant="ghost"
+            icon={<Sparkles color={colors.primary} size={16} />}
+            onPress={() => router.push('/generate')}
+            style={{ minHeight: 40, paddingVertical: spacing.sm, paddingHorizontal: spacing.md }}
+          />
+          <Button
+            title={t('prog.create')}
+            variant="ghost"
+            icon={<Plus color={colors.text} size={16} />}
+            onPress={() => router.push('/builder')}
+            style={{ minHeight: 40, paddingVertical: spacing.sm, paddingHorizontal: spacing.md }}
+          />
+        </View>
       </View>
 
       {customRoutines.length === 0 ? (

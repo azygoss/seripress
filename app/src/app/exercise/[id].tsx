@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Dumbbell, Heart, Layers, Play, Plus, Target } from 'lucide-react-native';
+import { ArrowLeft, Dumbbell, Heart, Layers, Play, Plus, Target, Trophy } from 'lucide-react-native';
 import { EXERCISES, getExercise } from '../../data/exercises';
 import { BODY_PART_TR, EQUIPMENT_TR, MUSCLE_TR, TARGET_TR } from '../../data/labels';
 import { useAppStore } from '../../store/appStore';
@@ -16,7 +16,7 @@ export default function ExerciseDetail() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t, lb, exName } = useI18n();
-  const { favorites, toggleFavorite, instructionLang } = useAppStore();
+  const { favorites, toggleFavorite, instructionLang, prs } = useAppStore();
   const [showAllSteps, setShowAllSteps] = useState(false);
 
   const exercise = getExercise(id ?? '');
@@ -104,6 +104,21 @@ export default function ExerciseDetail() {
                 </Text>
               </View>
             )}
+          </Card>
+
+          {/* Kişisel rekor */}
+          <Card style={styles.prCard}>
+            <View style={[styles.muscleIcon, { backgroundColor: prs[exercise.id] ? colors.accentSoft : colors.cardAlt }]}>
+              <Trophy color={prs[exercise.id] ? colors.accent : colors.textDim} size={16} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.muscleLabel}>{t('ex.personalRecord')}</Text>
+              <Text style={styles.muscleValue}>
+                {prs[exercise.id]
+                  ? t('ex.prLine', { kg: prs[exercise.id].weight, reps: prs[exercise.id].reps })
+                  : t('ex.noPr')}
+              </Text>
+            </View>
           </Card>
 
           {/* Steps */}
@@ -216,6 +231,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   secondaryText: { fontFamily: fonts.body, fontSize: 12.5, color: colors.textMuted, flex: 1 },
+  prCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
   stepRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm },
   stepBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   stepNum: {

@@ -8,6 +8,8 @@ export interface RoutineExercise {
   /** true ise tekrar yerine süre sayılır (plank, kardiyo vb.) */
   timed?: boolean;
   restSec: number;
+  /** Aynı grup numarasına sahip ardışık egzersizler superset olarak oynatılır */
+  group?: number;
 }
 
 export interface Routine {

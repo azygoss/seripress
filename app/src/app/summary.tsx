@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CheckCircle2, Clock, Home, Layers, Repeat } from 'lucide-react-native';
+import { CheckCircle2, Clock, Home, Layers, Repeat, Trophy } from 'lucide-react-native';
 import { useAppStore } from '../store/appStore';
 import { getExercise } from '../data/exercises';
 import { PRESET_ROUTINES, routineName } from '../data/programs';
@@ -66,6 +66,17 @@ export default function SummaryScreen() {
           </View>
         </View>
 
+        {/* Yeni rekorlar */}
+        {session.newPrs && session.newPrs.length > 0 && (
+          <View style={styles.prBanner}>
+            <Trophy color={colors.warning} size={20} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.prTitle}>{t('sum.newPr')}</Text>
+              <Text style={styles.prSub}>{t('sum.prCount', { n: session.newPrs.length })}</Text>
+            </View>
+          </View>
+        )}
+
         <Text style={styles.listTitle}>{t('sum.completed')}</Text>
         <Card style={{ padding: 0 }}>
           {session.exercises.map((e, i) => (
@@ -118,6 +129,19 @@ const styles = StyleSheet.create({
   },
   statValue: { fontFamily: fonts.display, fontSize: 24, color: colors.text },
   statLabel: { fontFamily: fonts.bodyMd, fontSize: 11, color: colors.textMuted, textTransform: 'uppercase' },
+  prBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  prTitle: { fontFamily: fonts.displayMd, fontSize: 18, color: colors.warning, letterSpacing: 0.5 },
+  prSub: { fontFamily: fonts.body, fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
   listTitle: {
     fontFamily: fonts.displayMd,
     fontSize: 19,

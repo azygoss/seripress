@@ -1,28 +1,107 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
-import { Check, ChevronRight, Flag, Minus, Pause, Play, Plus, SkipForward, X } from 'lucide-react-native';
-import { getExercise } from '../../data/exercises';
+import { Check, Flag, Link2, Minus, Pause, Play, Plus, RefreshCw, Repeat, SkipForward, X } from 'lucide-react-native';
+import { EXERCISES, getExercise } from '../../data/exercises';
 import { BODY_PART_TR } from '../../data/labels';
 import { PRESET_ROUTINES, routineName, type Routine, type RoutineExercise } from '../../data/programs';
+import { lastWeight } from '../../lib/stats';
 import { uid, useAppStore, type SessionExerciseLog } from '../../store/appStore';
 import { useI18n } from '../../i18n';
 import { colors, fonts, radius, spacing } from '../../theme';
-import { ExerciseGif } from '../../components/ExerciseImage';
+import { ExerciseGif, ExerciseThumb } from '../../components/ExerciseImage';
 import { fmtDuration } from '../../lib/format';
 import { Button, EmptyState } from '../../components/ui';
 
 type Phase = 'work' | 'rest' | 'done';
 
+/** Kuyruktaki bir çalışma adımı — hangi egzersizin hangi turu */
+interface Step {
+  exIdx: number;
+  block: number;
+  round: number;
+  /** Blok bu turda kaç egzersiz içeriyor */
+  roundLen: number;
+  totalRounds: number;
+  inGroup: boolean;
+}
+
+/**
+ * Çalışma sırası:
+ * - normal: her set kendi başına (set → dinlenme → set)
+ * - superset (group): aynı grup ardışık egzersizler tur tur dönüşür, dinlenme tur sonunda
+ * - devre: tüm program tek blok, her turda her egzersiz bir set
+ */
+function buildQueue(exs: RoutineExercise[], circuit: boolean): Step[] {
+  const steps: Step[] = [];
+  let blockId = 0;
+  const pushBlock = (idxs: number[]) => {
+    const totalRounds = Math.max(...idxs.map((i) => exs[i].sets));
+    for (let r = 0; r < totalRounds; r++) {
+      const members = idxs.filter((i) => exs[i].sets > r);
+      for (const i of members) {
+        steps.push({
+          exIdx: i,
+          block: blockId,
+          round: r,
+          roundLen: members.length,
+          totalRounds,
+          inGroup: idxs.length > 1,
+        });
+      }
+    }
+    blockId++;
+  };
+
+  if (circuit) {
+    pushBlock(exs.map((_, i) => i));
+    return steps;
+  }
+  let i = 0;
+  while (i < exs.length) {
+    const g = exs[i].group;
+    if (g != null && i + 1 < exs.length && exs[i + 1].group === g) {
+      const idxs = [i];
+      let j = i + 1;
+      while (j < exs.length && exs[j].group === g) idxs.push(j++);
+      pushBlock(idxs);
+      i = j;
+    } else {
+      pushBlock([i]);
+      i++;
+    }
+  }
+  return steps;
+}
+
+/** Ağırlık girişi gösterilen ekipmanlar */
+const WEIGHTED = new Set([
+  'barbell',
+  'dumbbell',
+  'kettlebell',
+  'ez barbell',
+  'olympic barbell',
+  'trap bar',
+  'cable',
+  'leverage machine',
+  'smith machine',
+  'sled machine',
+  'hammer',
+  'weighted',
+  'tire',
+  'sled machine',
+]);
+
 export default function SessionScreen() {
-  const { routineId } = useLocalSearchParams<{ routineId: string }>();
+  const { routineId, circuit: circuitParam } = useLocalSearchParams<{ routineId: string; circuit?: string }>();
+  const circuit = circuitParam === '1';
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { lang, t, lb, exName } = useI18n();
-  const { customRoutines, restSec: defaultRest, logSession } = useAppStore();
+  const { customRoutines, restSec: defaultRest, logSession, recordPR, sessions, prs } = useAppStore();
 
   const routine: Routine | undefined = useMemo(() => {
     if (routineId?.startsWith('single-')) {
@@ -47,32 +126,54 @@ export default function SessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routineId, customRoutines, defaultRest, lang]);
 
-  const totalSets = useMemo(
-    () => routine?.exercises.reduce((n, e) => n + e.sets, 0) ?? 0,
-    [routine]
-  );
+  // çalışma listesi — değiştirme (swap) yapılabilmesi için state kopyası
+  const [exs, setExs] = useState<RoutineExercise[] | null>(null);
+  useEffect(() => {
+    if (routine && exs === null) setExs(routine.exercises);
+  }, [routine, exs]);
 
-  const [exIndex, setExIndex] = useState(0);
-  const [setIndex, setSetIndex] = useState(0); // 0-based set within exercise
+  const queue = useMemo(() => (exs ? buildQueue(exs, circuit) : []), [exs, circuit]);
+  const totalSteps = queue.length;
+
+  const [stepIdx, setStepIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>('work');
   const [paused, setPaused] = useState(false);
   const [restLeft, setRestLeft] = useState(0);
   const [restTotal, setRestTotal] = useState(0);
   const [workLeft, setWorkLeft] = useState<number | null>(null); // timed set countdown
   const [elapsed, setElapsed] = useState(0);
-  const [doneSets, setDoneSets] = useState(0);
+  const [doneSteps, setDoneSteps] = useState(0);
+  const [donePerEx, setDonePerEx] = useState<number[]>([]);
+  const [weights, setWeights] = useState<Record<number, number>>({});
+  const [swapOpen, setSwapOpen] = useState(false);
   const startedAt = useRef(Date.now());
   const logs = useRef<SessionExerciseLog[]>([]);
   const finished = useRef(false);
 
-  const cur: RoutineExercise | undefined = routine?.exercises[exIndex];
+  const step: Step | undefined = queue[stepIdx];
+  const nextStep: Step | undefined = queue[stepIdx + 1];
+  const cur: RoutineExercise | undefined = step ? exs?.[step.exIdx] : undefined;
   const exercise = cur ? getExercise(cur.exerciseId) : undefined;
+  const curSetNo = step ? (donePerEx[step.exIdx] ?? 0) + 1 : 1;
+
+  const showWeight = !!exercise && WEIGHTED.has(exercise.equipment) && !cur?.timed;
+  const prevWeight = exercise ? lastWeight(sessions, exercise.id) : null;
+  const curWeight = step ? weights[step.exIdx] ?? 0 : 0;
+
+  // yeni egzersize geçince ağırlığı son kayıttan doldur
+  useEffect(() => {
+    if (!step || !exercise || !showWeight) return;
+    setWeights((w) =>
+      w[step.exIdx] != null ? w : { ...w, [step.exIdx]: prevWeight ?? prs[exercise.id]?.weight ?? 0 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIdx, exercise?.id, showWeight]);
 
   // timed set init
   useEffect(() => {
     if (cur?.timed) setWorkLeft(cur.reps);
     else setWorkLeft(null);
-  }, [exIndex, setIndex, cur]);
+  }, [stepIdx, cur]);
 
   useEffect(() => {
     activateKeepAwakeAsync('session').catch(() => {});
@@ -87,6 +188,17 @@ export default function SessionScreen() {
     finished.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const endedAt = Date.now();
+
+    // PR değerlendirmesi
+    const newPrs: string[] = [];
+    for (const l of logs.current) {
+      const w = l.weights?.filter((x): x is number => x != null && x > 0);
+      if (!w?.length) continue;
+      const best = Math.max(...w);
+      const repsPerSet = Math.max(1, Math.round(l.repsCompleted / l.setsCompleted));
+      if (recordPR(l.exerciseId, best, repsPerSet)) newPrs.push(l.exerciseId);
+    }
+
     const log = {
       id: uid(),
       routineId: routine.id,
@@ -96,21 +208,29 @@ export default function SessionScreen() {
       durationSec: Math.max(1, Math.round((endedAt - startedAt.current) / 1000)),
       totalSets: logs.current.reduce((n, l) => n + l.setsCompleted, 0),
       exercises: logs.current,
+      newPrs,
     };
     logSession(log);
     setPhase('done');
     router.replace({ pathname: '/summary', params: { sessionId: log.id } });
-  }, [routine, logSession, router, lang]);
+  }, [routine, logSession, router, lang, recordPR]);
 
   const completeSet = useCallback(() => {
-    if (!routine || !cur || !exercise) return;
+    if (!routine || !cur || !exercise || !step) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setDoneSets((d) => d + 1);
+    setDoneSteps((d) => d + 1);
+    setDonePerEx((d) => {
+      const copy = [...d];
+      copy[step.exIdx] = (copy[step.exIdx] ?? 0) + 1;
+      return copy;
+    });
 
+    const w = weights[step.exIdx];
     const existing = logs.current.find((l) => l.exerciseId === exercise.id);
     if (existing) {
       existing.setsCompleted += 1;
       existing.repsCompleted += cur.reps;
+      existing.weights = [...(existing.weights ?? []), w != null && w > 0 ? w : null];
     } else {
       logs.current.push({
         exerciseId: exercise.id,
@@ -118,14 +238,20 @@ export default function SessionScreen() {
         setsCompleted: 1,
         repsCompleted: cur.reps,
         timed: !!cur.timed,
+        weights: [w != null && w > 0 ? w : null],
       });
     }
 
-    const lastSetOfExercise = setIndex + 1 >= cur.sets;
-    const lastExercise = exIndex + 1 >= routine.exercises.length;
-
-    if (lastSetOfExercise && lastExercise) {
+    const isLast = stepIdx + 1 >= queue.length;
+    if (isLast) {
       finishWorkout();
+      return;
+    }
+    // superset/devre içinde aynı tur devam ediyorsa dinlenme yok
+    const nxt = queue[stepIdx + 1];
+    const noRest = nxt.block === step.block && nxt.round === step.round;
+    if (noRest) {
+      setStepIdx((i) => i + 1);
       return;
     }
     const rest = cur.restSec;
@@ -133,20 +259,13 @@ export default function SessionScreen() {
     setRestLeft(rest);
     setPhase('rest');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routine, cur, exercise, setIndex, exIndex, finishWorkout]);
+  }, [routine, cur, exercise, step, stepIdx, queue, weights, finishWorkout]);
 
   const onRestEnd = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    if (!routine || !cur) return;
-    const lastSetOfExercise = setIndex + 1 >= cur.sets;
-    if (lastSetOfExercise) {
-      setExIndex((i) => i + 1);
-      setSetIndex(0);
-    } else {
-      setSetIndex((i) => i + 1);
-    }
+    setStepIdx((i) => i + 1);
     setPhase('work');
-  }, [routine, cur, setIndex]);
+  }, []);
 
   const completeSetRef = useRef(completeSet);
   completeSetRef.current = completeSet;
@@ -189,6 +308,32 @@ export default function SessionScreen() {
     setRestTotal((t) => Math.max(1, t + d));
   };
 
+  const swapExercise = useCallback(
+    (newId: string) => {
+      if (!step) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setExs((list) => {
+        if (!list) return list;
+        const copy = [...list];
+        copy[step.exIdx] = { ...copy[step.exIdx], exerciseId: newId };
+        return copy;
+      });
+      // eski egzersizin ağırlık/set sayacını temizle
+      setDonePerEx((d) => {
+        const copy = [...d];
+        copy[step.exIdx] = 0;
+        return copy;
+      });
+      setWeights((w) => {
+        const copy = { ...w };
+        delete copy[step.exIdx];
+        return copy;
+      });
+      setSwapOpen(false);
+    },
+    [step]
+  );
+
   const quit = useCallback(() => {
     Alert.alert(t('sess.quitTitle'), t('sess.quitMsg'), [
       { text: t('sess.keepGoing'), style: 'cancel' },
@@ -207,7 +352,21 @@ export default function SessionScreen() {
     ]);
   }, [router, finishWorkout, t]);
 
-  if (!routine || !cur || !exercise) {
+  const swapCandidates = useMemo(() => {
+    if (!exercise || !exs) return [];
+    const used = new Set(exs.map((e) => e.exerciseId));
+    return EXERCISES.filter(
+      (e) => e.bodyPart === exercise.bodyPart && !used.has(e.id)
+    )
+      .sort(
+        (a, b) =>
+          Number(b.equipment === exercise.equipment) - Number(a.equipment === exercise.equipment) ||
+          Number(b.target === exercise.target) - Number(a.target === exercise.target)
+      )
+      .slice(0, 24);
+  }, [exercise, exs]);
+
+  if (!routine || !step || !cur || !exercise) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
         <EmptyState title={t('prog.notFound')} />
@@ -215,10 +374,10 @@ export default function SessionScreen() {
     );
   }
 
-  const progress = totalSets ? doneSets / totalSets : 0;
-  const isLastExercise = exIndex === routine.exercises.length - 1;
-  const nextEx = !isLastExercise && setIndex + 1 >= cur.sets ? routine.exercises[exIndex + 1] : null;
-  const nextExercise = nextEx ? getExercise(nextEx.exerciseId) : null;
+  const progress = totalSteps ? doneSteps / totalSteps : 0;
+  const nextCur = nextStep ? exs?.[nextStep.exIdx] : null;
+  const nextExercise = nextCur ? getExercise(nextCur.exerciseId) : null;
+  const hasPr = !!prs[exercise.id];
 
   return (
     <View style={styles.screen}>
@@ -243,15 +402,38 @@ export default function SessionScreen() {
 
       {phase === 'work' && (
         <View style={styles.workWrap}>
-          <Text style={styles.exCount}>
-            {t('sess.exerciseOf', { a: exIndex + 1, b: routine.exercises.length })}
-          </Text>
+          <View style={styles.badgeRow}>
+            <Text style={styles.exCount}>
+              {t('sess.exerciseOf', { a: step.exIdx + 1, b: exs!.length })}
+            </Text>
+            {circuit && (
+              <View style={styles.modeBadge}>
+                <Repeat color={colors.accent} size={11} />
+                <Text style={[styles.modeBadgeText, { color: colors.accent }]}>
+                  {t('sess.round', { a: step.round + 1, b: step.totalRounds })}
+                </Text>
+              </View>
+            )}
+            {!circuit && step.inGroup && (
+              <View style={styles.modeBadge}>
+                <Link2 color={colors.accent} size={11} />
+                <Text style={[styles.modeBadgeText, { color: colors.accent }]}>
+                  {t('sess.superset')} · {t('sess.round', { a: step.round + 1, b: step.totalRounds })}
+                </Text>
+              </View>
+            )}
+            {hasPr && (
+              <View style={styles.modeBadge}>
+                <Text style={styles.prBadgeText}>{t('sess.prBadge')}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.gifBox}>
             <ExerciseGif id={exercise.id} />
           </View>
           <Text style={styles.exName}>{exName(exercise)}</Text>
           <Text style={styles.exMeta}>
-            {lb(BODY_PART_TR, exercise.bodyPart)} · {t('sess.setOf', { a: setIndex + 1, b: cur.sets })}
+            {lb(BODY_PART_TR, exercise.bodyPart)} · {t('sess.setOf', { a: curSetNo, b: cur.sets })}
           </Text>
 
           {cur.timed ? (
@@ -266,15 +448,55 @@ export default function SessionScreen() {
             </View>
           )}
 
+          {showWeight && (
+            <View style={styles.weightRow}>
+              <Pressable
+                style={styles.weightBtn}
+                onPress={() =>
+                  setWeights((w) => ({ ...w, [step.exIdx]: Math.max(0, (w[step.exIdx] ?? 0) - 2.5) }))
+                }
+                accessibilityLabel={`${t('sess.weight')} ${t('common.decrease')}`}
+              >
+                <Minus color={colors.text} size={18} />
+              </Pressable>
+              <View style={styles.weightMid}>
+                <Text style={styles.weightValue}>
+                  {curWeight}
+                  <Text style={styles.weightUnit}> {t('sess.kg')}</Text>
+                </Text>
+                <Text style={styles.weightHint}>
+                  {prevWeight != null
+                    ? t('sess.suggestedWeight', { kg: +(prevWeight + 2.5).toFixed(1) })
+                    : t('sess.weight')}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.weightBtn}
+                onPress={() =>
+                  setWeights((w) => ({ ...w, [step.exIdx]: Math.min(400, (w[step.exIdx] ?? 0) + 2.5) }))
+                }
+                accessibilityLabel={`${t('sess.weight')} ${t('common.increase')}`}
+              >
+                <Plus color={colors.text} size={18} />
+              </Pressable>
+            </View>
+          )}
+
           <Button
             title={cur.timed ? t('sess.finishSet') : t('sess.completeSet')}
             icon={<Check color={colors.onPrimary} size={20} />}
             onPress={completeSet}
-            style={{ marginTop: spacing.xl }}
+            style={{ marginTop: spacing.lg }}
           />
-          <Pressable onPress={() => router.push(`/exercise/${exercise.id}`)} style={styles.howTo}>
-            <Text style={styles.howToText}>{t('sess.howTo')}</Text>
-          </Pressable>
+          <View style={styles.linkRow}>
+            <Pressable onPress={() => router.push(`/exercise/${exercise.id}`)} style={styles.linkBtn}>
+              <Text style={styles.howToText}>{t('sess.howTo')}</Text>
+            </Pressable>
+            <Pressable onPress={() => setSwapOpen(true)} style={styles.linkBtn}>
+              <RefreshCw color={colors.primary} size={14} />
+              <Text style={styles.howToText}>{t('sess.swap')}</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -302,25 +524,42 @@ export default function SessionScreen() {
               <Plus color={colors.text} size={20} />
             </Pressable>
           </View>
-          {nextExercise ? (
+          {nextExercise && nextCur ? (
             <View style={styles.nextBox}>
               <Text style={styles.nextLabel}>{t('sess.upNext')}</Text>
               <Text style={styles.nextName}>{exName(nextExercise)}</Text>
               <Text style={styles.nextMeta}>
-                {t('prog.setsXreps', { sets: nextEx!.sets, reps: `${nextEx!.reps} ${nextEx!.timed ? t('common.sec') : t('common.reps')}` })}
+                {t('prog.setsXreps', { sets: nextCur.sets, reps: `${nextCur.reps} ${nextCur.timed ? t('common.sec') : t('common.reps')}` })}
               </Text>
             </View>
-          ) : (
-            <View style={styles.nextBox}>
-              <Text style={styles.nextLabel}>{t('sess.nextSet')}</Text>
-              <Text style={styles.nextName}>{exName(exercise)}</Text>
-              <Text style={styles.nextMeta}>
-                {t('sess.setOf', { a: setIndex + 2, b: cur.sets })} · {cur.reps} {cur.timed ? t('common.sec') : t('common.reps')}
-              </Text>
-            </View>
-          )}
+          ) : null}
         </View>
       )}
+
+      {/* Egzersiz değiştirme */}
+      <Modal visible={swapOpen} transparent animationType="slide" onRequestClose={() => setSwapOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setSwapOpen(false)} />
+        <View style={[styles.modalSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+          <Text style={styles.modalTitle}>{t('sess.swapTitle')}</Text>
+          <FlatList
+            data={swapCandidates}
+            keyExtractor={(e) => e.id}
+            style={{ maxHeight: 420 }}
+            renderItem={({ item }) => (
+              <Pressable style={styles.swapRow} onPress={() => swapExercise(item.id)}>
+                <ExerciseThumb id={item.id} size={48} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.swapName} numberOfLines={1}>{exName(item)}</Text>
+                  <Text style={styles.swapMeta}>
+                    {lb(BODY_PART_TR, item.bodyPart)} · {item.equipment}
+                  </Text>
+                </View>
+                <RefreshCw color={colors.primary} size={16} />
+              </Pressable>
+            )}
+          />
+        </View>
+      </Modal>
 
       {paused && (
         <View style={styles.pausedOverlay}>
@@ -369,31 +608,68 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2 },
-  workWrap: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  workWrap: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 24 },
   exCount: { fontFamily: fonts.bodySb, fontSize: 12, color: colors.textDim, letterSpacing: 1.5 },
+  modeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  modeBadgeText: { fontFamily: fonts.bodySb, fontSize: 10, letterSpacing: 1 },
+  prBadgeText: { fontFamily: fonts.bodySb, fontSize: 10, letterSpacing: 1, color: colors.primary },
   gifBox: {
-    width: '88%',
+    width: '82%',
     aspectRatio: 1,
     borderRadius: radius.xl,
     overflow: 'hidden',
     backgroundColor: colors.bgElevated,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   exName: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 25,
     color: colors.text,
     textAlign: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   exMeta: { fontFamily: fonts.bodyMd, fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  timerBig: { alignItems: 'center', marginTop: spacing.lg },
-  timerBigText: { fontFamily: fonts.display, fontSize: 76, color: colors.primary, lineHeight: 80 },
+  timerBig: { alignItems: 'center', marginTop: spacing.md },
+  timerBigText: { fontFamily: fonts.display, fontSize: 68, color: colors.primary, lineHeight: 72 },
   timerBigLabel: { fontFamily: fonts.bodyMd, fontSize: 14, color: colors.textMuted },
-  repTarget: { alignItems: 'center', marginTop: spacing.lg },
-  repTargetNum: { fontFamily: fonts.display, fontSize: 76, color: colors.text, lineHeight: 80 },
+  repTarget: { alignItems: 'center', marginTop: spacing.md },
+  repTargetNum: { fontFamily: fonts.display, fontSize: 68, color: colors.text, lineHeight: 72 },
   repTargetLabel: { fontFamily: fonts.bodyMd, fontSize: 14, color: colors.textMuted },
-  howTo: { marginTop: spacing.md, padding: spacing.sm },
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  weightBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.cardAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weightMid: { alignItems: 'center', minWidth: 90 },
+  weightValue: { fontFamily: fonts.display, fontSize: 26, color: colors.text },
+  weightUnit: { fontFamily: fonts.bodyMd, fontSize: 13, color: colors.textMuted },
+  weightHint: { fontFamily: fonts.body, fontSize: 11, color: colors.primary, marginTop: -2 },
+  linkRow: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.sm },
+  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm },
   howToText: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.primary },
   restWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   restLabel: { fontFamily: fonts.bodySb, fontSize: 13, color: colors.textDim, letterSpacing: 2 },
@@ -444,4 +720,25 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   pausedText: { fontFamily: fonts.display, fontSize: 30, color: colors.text, marginTop: spacing.md },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  modalSheet: {
+    backgroundColor: colors.bgElevated,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  modalTitle: { fontFamily: fonts.displayMd, fontSize: 22, color: colors.text, marginBottom: spacing.md },
+  swapRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  swapName: { fontFamily: fonts.bodySb, fontSize: 14, color: colors.text },
+  swapMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.textMuted, marginTop: 2 },
 });
