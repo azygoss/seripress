@@ -229,23 +229,25 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
+
+        <View style={[styles.prefCol, styles.prefBorder]}>
+          <Text style={styles.prefTitle}>Hedef</Text>
+          <View style={styles.chipWrap}>
+            {GOALS.map((g) => (
+              <Chip key={g.id} label={g.label} active={store.goal === g.id} onPress={() => store.setGoal(g.id)} />
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.prefCol, styles.prefBorder]}>
+          <Text style={styles.prefTitle}>Seviye</Text>
+          <View style={styles.chipWrap}>
+            {LEVELS.map((l) => (
+              <Chip key={l.id} label={l.label} active={store.level === l.id} onPress={() => store.setLevel(l.id)} />
+            ))}
+          </View>
+        </View>
       </Card>
-
-      {/* Goal */}
-      <SectionHeader title="Hedef" />
-      <View style={styles.chipWrap}>
-        {GOALS.map((g) => (
-          <Chip key={g.id} label={g.label} active={store.goal === g.id} onPress={() => store.setGoal(g.id)} />
-        ))}
-      </View>
-
-      {/* Level */}
-      <SectionHeader title="Seviye" />
-      <View style={styles.chipWrap}>
-        {LEVELS.map((l) => (
-          <Chip key={l.id} label={l.label} active={store.level === l.id} onPress={() => store.setLevel(l.id)} />
-        ))}
-      </View>
 
       {/* Preferences */}
       <SectionHeader title="Tercihler" />
