@@ -152,7 +152,7 @@ export default function OnboardingScreen() {
               <ChevronLeft color={colors.text} size={22} />
             </Pressable>
           ) : (
-            <View style={styles.backBtn} />
+            <View style={{ width: 40 }} />
           )}
           <View style={styles.progressTrack}>
             <View

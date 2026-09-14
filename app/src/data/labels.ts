@@ -137,5 +137,5 @@ export const GENDERS = [
 export const LOCATIONS = [
   { id: 'home', label: 'Evde' },
   { id: 'gym', label: 'Salonda' },
-  { id: 'anywhere', label: 'Farketmez' },
+  { id: 'anywhere', label: 'Fark etmez' },
 ] as const;
